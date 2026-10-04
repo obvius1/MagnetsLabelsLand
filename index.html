@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Plantmagneten</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#3E6B48">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Plantmagneten">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<style>
+  @font-face { font-family: "Atkinson"; src: url("fonts/AtkinsonHyperlegible-Regular.ttf") format("truetype"); font-weight: 400; font-display: swap; }
+  @font-face { font-family: "Atkinson"; src: url("fonts/AtkinsonHyperlegible-Bold.ttf") format("truetype"); font-weight: 700; font-display: swap; }
+  :root {
+    --paper: #EDF0E6; --panel: #FBFCF8; --ink: #1E2B22; --muted: #5B6A5E;
+    --leaf: #3E6B48; --leaf-dark: #2D5236; --ochre: #C28A1E; --line: #CBD3C2; --danger: #A23B2A;
+    --font: "Atkinson", "Segoe UI", Arial, sans-serif;
+    color-scheme: light; box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *, *::before, *::after { box-sizing: inherit; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font); font-size: 17px; line-height: 1.45; }
+  header { padding: 28px 24px 8px; max-width: 1400px; margin: 0 auto; }
+  h1 { font-weight: 700; font-size: clamp(32px, 5vw, 50px); line-height: 1; margin: 0 0 6px; letter-spacing: -0.02em; }
+  header p { margin: 0; color: var(--muted); max-width: 60ch; }
+  .install { margin-top: 12px; padding: 10px 14px; border-radius: 10px; background: #f6efd9; border: 1px solid #e4d3a3; max-width: 60ch; }
+
+  .app { max-width: 1400px; margin: 0 auto; padding: 16px 24px 48px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+  @media (max-width: 960px) { .app { grid-template-columns: minmax(0,1fr); } }
+
+  section.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px; margin-bottom: 20px; }
+  h2 { font-weight: 700; font-size: 22px; margin: 0 0 14px; }
+  h3 { font-weight: 700; font-size: 17px; margin: 0; grid-column: span 6; padding-top: 6px; }
+
+  .grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px 14px; }
+  .f { display: flex; flex-direction: column; gap: 4px; }
+  .f.s6 { grid-column: span 6; } .f.s3 { grid-column: span 3; } .f.s2 { grid-column: span 2; }
+  @media (max-width: 520px) { .f.s2 { grid-column: span 3; } .f.s2.full { grid-column: span 6; } }
+  label { font-size: 15px; color: var(--muted); }
+  input, select {
+    font: inherit; font-size: 18px; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 8px;
+    background: #fff; color: var(--ink); width: 100%; min-width: 0; -webkit-appearance: none; appearance: none;
+  }
+  select { background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+    background-position: calc(100% - 18px) 55%, calc(100% - 12px) 55%; background-size: 6px 6px; background-repeat: no-repeat; padding-right: 30px; }
+  input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid var(--ochre); outline-offset: 2px; }
+  input[type=checkbox] { -webkit-appearance: auto; appearance: auto; width: 24px; height: 24px; padding: 0; accent-color: var(--leaf); }
+
+  .live { margin-top: 18px; padding: 18px; border-radius: 10px; background: repeating-linear-gradient(135deg, #e3e8da 0 8px, #e9ede1 8px 16px); }
+  .live-holder { width: 100%; max-width: 460px; margin: 0 auto; position: relative; }
+  .live-holder .card { transform-origin: top left; position: absolute; left: 0; top: 0; box-shadow: 0 2px 0 rgba(30,43,34,.25); }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+  button { font: inherit; font-size: 17px; padding: 10px 16px; border-radius: 8px; cursor: pointer; border: 1.5px solid var(--line); background: #fff; color: var(--ink); -webkit-tap-highlight-color: transparent; }
+  button:hover { border-color: var(--muted); }
+  button:disabled { opacity: .5; cursor: default; }
+  button.primary { background: var(--leaf); border-color: var(--leaf); color: #fff; font-weight: 700; }
+  button.primary:hover { background: var(--leaf-dark); }
+  button.big { font-size: 19px; padding: 13px 20px; }
+  button.danger { color: var(--danger); }
+  button.small { font-size: 15px; padding: 7px 11px; }
+  .hidden { display: none !important; }
+
+  .list { list-style: none; margin: 0; padding: 0; }
+  .list li { display: grid; grid-template-columns: auto 52px minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+  .list li:first-child { border-top: 0; }
+  .list li.editing { background: #f6efd9; margin: 0 -10px; padding: 10px; border-radius: 8px; }
+  @media (max-width: 560px) { .list li { grid-template-columns: auto 44px minmax(0,1fr); } .list .row-btns { grid-column: 2 / -1; justify-content: flex-start; } }
+  .code { font-weight: 700; font-size: 20px; line-height: 1.1; }
+  .code small { display: block; font-weight: 400; font-size: 14px; color: var(--muted); }
+  .what b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .what span { display: block; color: var(--muted); font-size: 15px; }
+  .row-btns { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .list-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+  .empty { color: var(--muted); padding: 12px 0; }
+
+  details summary { cursor: pointer; font-weight: 700; font-size: 20px; }
+  details[open] summary { margin-bottom: 14px; }
+  .hint { color: var(--muted); font-size: 15px; margin: 10px 0 0; }
+  .check { flex-direction: row; align-items: center; gap: 10px; }
+
+  aside { position: sticky; top: calc(16px + env(safe-area-inset-top, 0px)); }
+  @media (max-width: 960px) { aside { position: static; } }
+  .print-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .print-bar p { margin: 0; color: var(--muted); flex: 1 1 200px; }
+  .print-bar strong { color: var(--ink); }
+  .print-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+  .sheets { max-height: calc(100vh - 150px); overflow-y: auto; -webkit-overflow-scrolling: touch; padding-right: 4px; }
+  @media (max-width: 960px) { .sheets { max-height: none; } }
+  .sheet-holder { position: relative; margin-bottom: 16px; }
+  .sheet-holder .sheet { transform-origin: top left; position: absolute; left: 0; top: 0; box-shadow: 0 1px 4px rgba(30,43,34,.25); }
+
+  /* ---------- Blad en magneten in echte millimeters ---------- */
+  .sheet { width: 210mm; height: 297mm; background: #fff; position: relative; overflow: hidden; }
+  .card {
+    --h: 30mm;
+    position: absolute; background: #fff; color: #000;
+    padding: calc(var(--h) * .075) calc(var(--h) * .14);
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: 1fr auto;
+    column-gap: calc(var(--h) * .08);
+    font-family: "Atkinson", Arial, sans-serif; line-height: 1.1;
+  }
+  .card.cut { outline: 0.2mm solid #8a948c; outline-offset: -0.1mm; }
+  .c-name { overflow: hidden; align-self: start; }
+  .c-name span { display: inline-block; white-space: nowrap; font-weight: 700; font-size: calc(var(--h) * .24); line-height: 1; }
+  .c-letter { align-self: start; font-weight: 700; font-size: calc(var(--h) * .28); line-height: .9; }
+  .c-when { align-self: end; display: grid; grid-template-columns: auto auto; justify-content: start; align-items: baseline;
+    column-gap: calc(var(--h) * .05); row-gap: calc(var(--h) * .01); white-space: nowrap; overflow: hidden; }
+  .c-type { font-size: calc(var(--h) * .09); }
+  .c-period { font-size: calc(var(--h) * .12); font-weight: 700; }
+  .c-num { align-self: end; justify-self: end; font-size: calc(var(--h) * .13); font-weight: 700; line-height: 1; }
+  .slot-empty { position: absolute; border: 0.3mm dashed #c3cbbf; }
+
+  #printRoot { display: none; }
+  @page { size: A4; margin: 0; }
+  @media print {
+    :root { padding: 0; }
+    body { background: #fff; }
+    body > *:not(#printRoot) { display: none !important; }
+    #printRoot { display: block; }
+    #printRoot .sheet { transform: none !important; position: relative; break-after: page; page-break-after: always; }
+    #printRoot .sheet:last-child { break-after: auto; page-break-after: auto; }
+    #printRoot .slot-empty { display: none; }
+    .card, .sheet { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Plantmagneten</h1>
+  <p>Vul de planten in, kijk hoe het blad eruitziet en druk af op A4 of sla op als PDF.</p>
+  <p class="install hidden" id="installHint">Tip voor de iPad: tik op <strong>Deel</strong> en kies <strong>Zet op beginscherm</strong>. Open Plantmagneten daarna altijd via dat icoon, dan blijft de lijst bewaard.</p>
+</header>
+
+<main class="app">
+  <div>
+    <section class="panel" id="formPanel">
+      <h2 id="formTitle">Nieuwe magneet</h2>
+      <form id="form" autocomplete="off">
+        <div class="grid">
+          <div class="f s6">
+            <label for="name">Naam van de plant</label>
+            <input id="name" required placeholder="bv. Tomaat Moneymaker">
+          </div>
+
+          <h3>In de grond</h3>
+          <div class="f s2 full">
+            <label for="type">Wat</label>
+            <select id="type"></select>
+          </div>
+          <div class="f s2"><label for="from">Van</label><select id="from"></select></div>
+          <div class="f s2"><label for="to">Tot</label><select id="to"></select></div>
+
+          <h3>Oogsten</h3>
+          <div class="f s2 full" aria-hidden="true"></div>
+          <div class="f s2"><label for="hFrom">Van</label><select id="hFrom"></select></div>
+          <div class="f s2"><label for="hTo">Tot</label><select id="hTo"></select></div>
+
+          <h3>Plaats op het bord</h3>
+          <div class="f s3"><label for="letter">Letter</label><select id="letter"></select></div>
+          <div class="f s3"><label for="number">Nummer</label><input id="number" type="number" min="0" inputmode="numeric"></div>
+        </div>
+
+        <div class="live" aria-label="Voorbeeld van de magneet">
+          <div class="live-holder" id="liveHolder"></div>
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="primary big" id="submitBtn">Magneet toevoegen</button>
+          <button type="button" class="hidden" id="cancelBtn">Annuleren</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel">
+      <div class="list-head">
+        <h2 style="margin:0">Mijn magneten</h2>
+        <div class="row-btns">
+          <button class="small" id="sortBtn" type="button">Sorteer op letter en nummer</button>
+          <button class="small" id="toggleAllBtn" type="button">Alles aan/uit</button>
+        </div>
+      </div>
+      <p class="hint" style="margin:0 0 8px">Alleen aangevinkte magneten komen op het blad.</p>
+      <ul class="list" id="list"></ul>
+    </section>
+
+    <section class="panel">
+      <details id="settingsBox">
+        <summary>Afmetingen en bestand</summary>
+        <div class="grid">
+          <div class="f s3"><label for="sw">Breedte magneet (mm)</label><input id="sw" type="number" step="0.5" min="10" inputmode="decimal"></div>
+          <div class="f s3"><label for="sh">Hoogte magneet (mm)</label><input id="sh" type="number" step="0.5" min="10" inputmode="decimal"></div>
+          <div class="f s3"><label for="sm">Rand van het blad (mm)</label><input id="sm" type="number" step="0.5" min="0" inputmode="decimal"></div>
+          <div class="f s3"><label for="sg">Ruimte tussen magneten (mm)</label><input id="sg" type="number" step="0.5" min="0" inputmode="decimal"></div>
+          <div class="f s3"><label for="ss">Begin op plaats nr.</label><input id="ss" type="number" min="1" inputmode="numeric"></div>
+          <div class="f s3 check"><input id="sc" type="checkbox"><label for="sc">Snijlijnen tonen</label></div>
+        </div>
+        <p class="hint">“Begin op plaats” is handig als een blad al half gebruikt is: plaats 1 is linksboven, daarna van links naar rechts.</p>
+        <div class="actions">
+          <button type="button" id="exportBtn">Lijst opslaan als bestand</button>
+          <button type="button" id="importBtn">Lijst inladen uit bestand</button>
+          <input type="file" id="importFile" accept=".json,application/json" class="hidden">
+          <button type="button" class="danger" id="clearBtn">Alle magneten wissen</button>
+        </div>
+        <p class="hint">De lijst staat alleen op dit toestel. Sla ze af en toe op als bestand, dan ben je ze niet kwijt.</p>
+      </details>
+    </section>
+  </div>
+
+  <aside>
+    <div class="print-bar">
+      <p id="summary"></p>
+      <div class="print-btns">
+        <button class="big" id="pdfBtn" type="button">Opslaan als PDF</button>
+        <button class="primary big" id="printBtn" type="button">Afdrukken</button>
+      </div>
+    </div>
+    <div class="sheets" id="sheets"></div>
+    <p class="hint">Kies bij het afdrukken <strong>Schaal: 100%</strong> (of “Werkelijke grootte”) en <strong>Marges: geen</strong>. Anders kloppen de maten niet. Druk de eerste keer één testblad af en leg er een magneet op.</p>
+  </aside>
+</main>
+
+<div id="printRoot"></div>
+
+<script src="vendor/jspdf.umd.min.js"></script>
+<script>
+(() => {
+  const KEY = 'plantmagneten-v1';
+  const MONTHS = ['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'];
+  const TYPES = ['Zaaien', 'Voorzaaien', 'Planten', 'Uitplanten', 'Poten'];
+  const LETTERS = 'ABCDEFGHIJKL'.split('');
+  const PX_PER_MM = 96 / 25.4;
+  const PT_PER_MM = 72 / 25.4;
+  const A4 = { w: 210, h: 297 };
+  const DEFAULT_SETTINGS = { w: 105, h: 30, margin: 0, gap: 0, cut: true, start: 1, v: 2 };
+
+  // Verhoudingen t.o.v. de hoogte van de magneet. Gelden voor scherm, afdruk en PDF.
+  const R = { padY: .075, padX: .14, colGap: .08, name: .24, letter: .28, type: .09, period: .12, num: .13, whenGap: .05 };
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const isTouch = window.matchMedia('(pointer: coarse)').matches;
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  let state = { labels: [], settings: { ...DEFAULT_SETTINGS } };
+  let editingId = null;
+  const fontData = { regular: null, bold: null };
+
+  // ---------- opslag ----------
+  function normalize(l) {
+    const num = v => (v === null || v === undefined || v === '' || isNaN(parseInt(v, 10))) ? null : parseInt(v, 10);
+    return {
+      id: l.id || uid(),
+      name: String(l.name || ''),
+      type: TYPES.includes(l.type) ? l.type : 'Zaaien',
+      from: num(l.from), to: num(l.to),
+      hFrom: num(l.hFrom), hTo: num(l.hTo),
+      letter: LETTERS.includes(l.letter) ? l.letter : 'A',
+      number: l.number == null ? '' : String(l.number),
+      print: l.print !== false
+    };
+  }
+  function load() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (raw) {
+        const data = JSON.parse(raw);
+        if (Array.isArray(data.labels)) state.labels = data.labels.map(normalize);
+        if (data.settings) state.settings = { ...DEFAULT_SETTINGS, ...data.settings };
+        // oude standaardmaat (100 x 40 mm) vervangen door de echte maat van de magneten
+        if (!data.settings || !data.settings.v) state.settings = { ...DEFAULT_SETTINGS, start: state.settings.start || 1, cut: state.settings.cut !== false };
+      }
+    } catch (e) { /* leeg beginnen */ }
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* opslag niet beschikbaar */ }
+  }
+
+  // ---------- hulpfuncties ----------
+  function range(f, t) {
+    const a = f != null ? MONTHS[f] : '', b = t != null ? MONTHS[t] : '';
+    if (a && b && a !== b) return `${a} – ${b}`;
+    return a || b || '';
+  }
+  function rows(l) {
+    const out = [];
+    const sow = range(l.from, l.to);
+    if (sow) out.push([l.type, sow]);
+    const harvest = range(l.hFrom, l.hTo);
+    if (harvest) out.push(['Oogsten', harvest]);
+    return out;
+  }
+  const numText = l => (l.number !== '' && l.number != null) ? '#' + l.number : '';
+
+  function cardHTML(l, s, extraStyle = '') {
+    const when = rows(l).map(([t, p]) => `<span class="c-type">${esc(t)}</span><span class="c-period">${esc(p)}</span>`).join('');
+    return `<div class="card${s.cut ? ' cut' : ''}" style="--h:${s.h}mm;width:${s.w}mm;height:${s.h}mm;${extraStyle}">
+      <div class="c-name"><span>${esc(l.name)}</span></div>
+      <div class="c-letter">${esc(l.letter)}</div>
+      <div class="c-when">${when}</div>
+      <div class="c-num">${esc(numText(l))}</div>
+    </div>`;
+  }
+  function fitNames(root) {
+    root.querySelectorAll('.c-name').forEach(box => {
+      const span = box.firstElementChild;
+      span.style.fontSize = '';
+      let size = parseFloat(getComputedStyle(span).fontSize);
+      const min = size * 0.4;
+      while (span.scrollWidth > box.clientWidth && size > min) {
+        size *= 0.95;
+        span.style.fontSize = size + 'px';
+      }
+    });
+  }
+  function layout() {
+    const s = state.settings;
+    const cols = Math.max(0, Math.floor((A4.w - 2 * s.margin + s.gap) / (s.w + s.gap)));
+    const rowsN = Math.max(0, Math.floor((A4.h - 2 * s.margin + s.gap) / (s.h + s.gap)));
+    const offX = (A4.w - (cols * s.w + Math.max(0, cols - 1) * s.gap)) / 2;
+    const offY = (A4.h - (rowsN * s.h + Math.max(0, rowsN - 1) * s.gap)) / 2;
+    return { cols, rows: rowsN, per: cols * rowsN, offX, offY };
+  }
+  // Alle plaatsen over alle bladen: [{page, x, y, item|null}]
+  function slots() {
+    const s = state.settings, L = layout();
+    if (!L.per) return { L, pages: [], count: 0 };
+    const items = state.labels.filter(l => l.print !== false);
+    const blanks = Math.min(Math.max(0, (s.start || 1) - 1), L.per - 1);
+    const list = Array(blanks).fill(null).concat(items);
+    const nPages = Math.max(1, Math.ceil(list.length / L.per));
+    const pages = [];
+    for (let p = 0; p < nPages; p++) {
+      const page = [];
+      for (let i = 0; i < L.per; i++) {
+        const r = Math.floor(i / L.cols), c = i % L.cols;
+        page.push({ x: L.offX + c * (s.w + s.gap), y: L.offY + r * (s.h + s.gap), item: list[p * L.per + i] || null });
+      }
+      pages.push(page);
+    }
+    return { L, pages, count: items.length };
+  }
+
+  // ---------- formulier ----------
+  function fillSelects() {
+    const monthOpts = MONTHS.map((m, i) => `<option value="${i}">${m}</option>`).join('');
+    $('type').innerHTML = TYPES.map(t => `<option>${t}</option>`).join('');
+    $('from').innerHTML = `<option value="">–</option>` + monthOpts;
+    $('to').innerHTML = `<option value="">–</option>` + monthOpts;
+    $('hFrom').innerHTML = `<option value="">–</option>` + monthOpts;
+    $('hTo').innerHTML = `<option value="">–</option>` + monthOpts;
+    $('letter').innerHTML = LETTERS.map(l => `<option>${l}</option>`).join('');
+    $('from').value = '3'; $('to').value = '4';
+    $('hFrom').value = '6'; $('hTo').value = '8';
+  }
+  function nextNumber() {
+    const nums = state.labels.map(l => parseInt(l.number, 10)).filter(n => !isNaN(n));
+    return nums.length ? Math.max(...nums) + 1 : 1;
+  }
+  const selNum = id => $(id).value === '' ? null : parseInt($(id).value, 10);
+  const setSel = (id, v) => { $(id).value = v == null ? '' : String(v); };
+  function readForm() {
+    return {
+      name: $('name').value.trim(),
+      type: $('type').value,
+      from: selNum('from'), to: selNum('to'),
+      hFrom: selNum('hFrom'), hTo: selNum('hTo'),
+      letter: $('letter').value,
+      number: $('number').value.trim()
+    };
+  }
+  function writeForm(l) {
+    $('name').value = l.name;
+    $('type').value = l.type;
+    setSel('from', l.from); setSel('to', l.to);
+    setSel('hFrom', l.hFrom); setSel('hTo', l.hTo);
+    $('letter').value = l.letter;
+    $('number').value = l.number;
+  }
+  function renderLive() {
+    const s = state.settings;
+    const holder = $('liveHolder');
+    const l = readForm();
+    if (!l.name) l.name = 'Naam van de plant';
+    holder.innerHTML = cardHTML(l, s);
+    const card = holder.firstElementChild;
+    const scale = holder.clientWidth / (s.w * PX_PER_MM);
+    card.style.transform = `scale(${scale})`;
+    holder.style.height = (s.h * PX_PER_MM * scale) + 'px';
+    fitNames(holder);
+  }
+  function startEdit(id) {
+    const l = state.labels.find(x => x.id === id);
+    if (!l) return;
+    editingId = id;
+    writeForm(l);
+    $('formTitle').textContent = 'Magneet aanpassen';
+    $('submitBtn').textContent = 'Wijziging opslaan';
+    $('cancelBtn').classList.remove('hidden');
+    renderLive(); renderList();
+    $('formPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  function stopEdit() {
+    editingId = null;
+    $('formTitle').textContent = 'Nieuwe magneet';
+    $('submitBtn').textContent = 'Magneet toevoegen';
+    $('cancelBtn').classList.add('hidden');
+    $('name').value = '';
+    $('number').value = nextNumber();
+    renderLive(); renderList();
+  }
+
+  // ---------- lijst ----------
+  function renderList() {
+    const ul = $('list');
+    if (!state.labels.length) {
+      ul.innerHTML = `<li class="empty" style="display:block">Nog geen magneten. Vul hierboven de eerste plant in.</li>`;
+      return;
+    }
+    ul.innerHTML = state.labels.map(l => `
+      <li class="${l.id === editingId ? 'editing' : ''}">
+        <input type="checkbox" data-act="print" data-id="${l.id}" ${l.print !== false ? 'checked' : ''} aria-label="Afdrukken: ${esc(l.name)}">
+        <div class="code">${esc(l.letter)}<small>${esc(numText(l))}</small></div>
+        <div class="what"><b>${esc(l.name)}</b><span>${rows(l).map(([t, p]) => esc(t + ' ' + p)).join(', ')}</span></div>
+        <div class="row-btns">
+          <button class="small" data-act="edit" data-id="${l.id}" type="button">Aanpassen</button>
+          <button class="small" data-act="copy" data-id="${l.id}" type="button">Kopiëren</button>
+          <button class="small danger" data-act="del" data-id="${l.id}" type="button">Wissen</button>
+        </div>
+      </li>`).join('');
+  }
+
+  // ---------- bladen ----------
+  function renderSheets() {
+    const s = state.settings;
+    const { L, pages, count } = slots();
+    const box = $('sheets');
+    if (!L.per) {
+      box.innerHTML = '';
+      $('summary').innerHTML = '<strong>De magneet is groter dan het blad.</strong> Pas de afmetingen aan.';
+      $('printBtn').disabled = $('pdfBtn').disabled = true;
+      return;
+    }
+    box.innerHTML = pages.map(page => `<div class="sheet-holder"><div class="sheet">${
+      page.map(({ x, y, item }) => {
+        const pos = `left:${x}mm;top:${y}mm;`;
+        return item ? cardHTML(item, s, pos) : `<div class="slot-empty" style="${pos}width:${s.w}mm;height:${s.h}mm"></div>`;
+      }).join('')
+    }</div></div>`).join('');
+    scaleSheets();
+    fitNames(box);
+    $('summary').innerHTML = `<strong>${count} ${count === 1 ? 'magneet' : 'magneten'}</strong> op ${pages.length} ${pages.length === 1 ? 'blad' : 'bladen'}. ${L.per} per blad (${L.cols} × ${L.rows}).`;
+    $('printBtn').disabled = $('pdfBtn').disabled = count === 0;
+  }
+  function scaleSheets() {
+    const holders = $('sheets').querySelectorAll('.sheet-holder');
+    if (!holders.length) return;
+    const scale = Math.min(1, holders[0].clientWidth / (A4.w * PX_PER_MM));
+    holders.forEach(h => {
+      h.style.height = (A4.h * PX_PER_MM * scale) + 'px';
+      h.firstElementChild.style.transform = `scale(${scale})`;
+    });
+  }
+  function buildPrint() {
+    const root = $('printRoot');
+    root.innerHTML = '';
+    $('sheets').querySelectorAll('.sheet').forEach(sh => {
+      const clone = sh.cloneNode(true);
+      clone.style.transform = 'none';
+      root.appendChild(clone);
+    });
+  }
+
+  // ---------- PDF ----------
+  async function loadFonts() {
+    const toB64 = buf => {
+      const bytes = new Uint8Array(buf); let bin = '';
+      for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+      return btoa(bin);
+    };
+    try {
+      const [r, b] = await Promise.all([
+        fetch('fonts/AtkinsonHyperlegible-Regular.ttf').then(x => x.arrayBuffer()),
+        fetch('fonts/AtkinsonHyperlegible-Bold.ttf').then(x => x.arrayBuffer())
+      ]);
+      fontData.regular = toB64(r); fontData.bold = toB64(b);
+    } catch (e) { /* PDF valt terug op Helvetica */ }
+  }
+  function makePDF() {
+    const { jsPDF } = window.jspdf;
+    const s = state.settings;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+    let F = 'helvetica';
+    if (fontData.regular && fontData.bold) {
+      doc.addFileToVFS('Atk-R.ttf', fontData.regular); doc.addFont('Atk-R.ttf', 'Atk', 'normal');
+      doc.addFileToVFS('Atk-B.ttf', fontData.bold); doc.addFont('Atk-B.ttf', 'Atk', 'bold');
+      F = 'Atk';
+    }
+    const h = s.h, w = s.w;
+    const padX = h * R.padX, padY = h * R.padY;
+    const fs = mm => mm * PT_PER_MM; // lettergrootte in mm -> punt
+    const { pages } = slots();
+
+    pages.forEach((page, p) => {
+      if (p > 0) doc.addPage('a4', 'portrait');
+      page.forEach(({ x, y, item }) => {
+        if (!item) return;
+        if (s.cut) { doc.setDrawColor(138, 148, 140); doc.setLineWidth(0.2); doc.rect(x, y, w, h); }
+        doc.setTextColor(0, 0, 0);
+
+        // letter rechtsboven
+        doc.setFont(F, 'bold'); doc.setFontSize(fs(h * R.letter));
+        const letterW = doc.getTextWidth(item.letter);
+        doc.text(item.letter, x + w - padX, y + padY + h * R.letter * 0.78, { align: 'right' });
+
+        // naam linksboven, krimpt als ze te lang is
+        let nameMM = h * R.name;
+        const maxW = w - 2 * padX - letterW - h * R.colGap;
+        doc.setFontSize(fs(nameMM));
+        while (doc.getTextWidth(item.name) > maxW && nameMM > h * R.name * 0.4) { nameMM *= 0.95; doc.setFontSize(fs(nameMM)); }
+        doc.text(item.name, x + padX, y + padY + nameMM * 0.78);
+
+        // onderaan: zaaien/planten en oogsten
+        const bottom = y + h - padY - h * R.period * 0.22;
+        const rr = rows(item);
+        const lineH = h * R.period * 1.2;
+        doc.setFont(F, 'normal'); doc.setFontSize(fs(h * R.type));
+        const typeW = Math.max(0, ...rr.map(([t]) => doc.getTextWidth(t)));
+        rr.forEach(([t, period], i) => {
+          const base = bottom - (rr.length - 1 - i) * lineH;
+          doc.setFont(F, 'normal'); doc.setFontSize(fs(h * R.type));
+          doc.text(t, x + padX, base);
+          doc.setFont(F, 'bold'); doc.setFontSize(fs(h * R.period));
+          doc.text(period, x + padX + typeW + h * R.whenGap, base);
+        });
+
+        // nummer rechtsonder
+        const nt = numText(item);
+        if (nt) {
+          doc.setFont(F, 'bold'); doc.setFontSize(fs(h * R.num));
+          doc.text(nt, x + w - padX, bottom, { align: 'right' });
+        }
+      });
+    });
+    return doc.output('blob');
+  }
+
+  // Op iPad: deelvenster (Bewaar in Bestanden, Druk af...). Op computer: gewone download.
+  function deliver(blob, filename) {
+    const file = new File([blob], filename, { type: blob.type });
+    if (isTouch && navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: filename }).catch(err => {
+        if (err && err.name !== 'AbortError') download(blob, filename);
+      });
+      return;
+    }
+    download(blob, filename);
+  }
+  function download(blob, filename) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }
+  const today = () => new Date().toISOString().slice(0, 10);
+
+  function renderAll() { save(); renderList(); renderSheets(); renderLive(); }
+
+  // ---------- instellingen ----------
+  const settingFields = { sw: 'w', sh: 'h', sm: 'margin', sg: 'gap', ss: 'start' };
+  function writeSettings() {
+    for (const [id, k] of Object.entries(settingFields)) $(id).value = state.settings[k];
+    $('sc').checked = !!state.settings.cut;
+  }
+  for (const [id, k] of Object.entries(settingFields)) {
+    $(id).addEventListener('input', () => {
+      const v = parseFloat($(id).value);
+      if (isNaN(v)) return;
+      if ((k === 'w' || k === 'h') && v < 10) return;
+      state.settings[k] = k === 'start' ? Math.max(1, Math.round(v)) : Math.max(0, v);
+      renderAll();
+    });
+  }
+  $('sc').addEventListener('change', () => { state.settings.cut = $('sc').checked; renderAll(); });
+
+  // ---------- gebeurtenissen ----------
+  ['name','number'].forEach(id => $(id).addEventListener('input', renderLive));
+  ['type','from','to','hFrom','hTo','letter'].forEach(id => $(id).addEventListener('change', renderLive));
+
+  $('form').addEventListener('submit', e => {
+    e.preventDefault();
+    const data = readForm();
+    if (!data.name) { $('name').focus(); return; }
+    if (editingId) {
+      const i = state.labels.findIndex(x => x.id === editingId);
+      if (i >= 0) state.labels[i] = normalize({ ...state.labels[i], ...data });
+      save(); stopEdit(); renderSheets();
+    } else {
+      state.labels.push(normalize({ ...data, print: true }));
+      // keuzes blijven staan voor de volgende plant, het nummer schuift op
+      $('name').value = '';
+      $('number').value = nextNumber();
+      renderAll();
+      if (!isTouch) $('name').focus();
+    }
+  });
+  $('cancelBtn').addEventListener('click', stopEdit);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && editingId) stopEdit(); });
+
+  $('list').addEventListener('click', e => {
+    const btn = e.target.closest('[data-act]');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    const i = state.labels.findIndex(x => x.id === id);
+    if (i < 0) return;
+    const act = btn.dataset.act;
+    if (act === 'print') { state.labels[i].print = btn.checked; save(); renderSheets(); }
+    if (act === 'edit') startEdit(id);
+    if (act === 'copy') {
+      const copy = { ...state.labels[i], id: uid(), number: String(nextNumber()) };
+      state.labels.splice(i + 1, 0, copy);
+      renderAll();
+      startEdit(copy.id);
+    }
+    if (act === 'del') {
+      if (!confirm(`“${state.labels[i].name}” wissen?`)) return;
+      state.labels.splice(i, 1);
+      if (editingId === id) stopEdit();
+      renderAll();
+    }
+  });
+
+  $('sortBtn').addEventListener('click', () => {
+    state.labels.sort((a, b) =>
+      a.letter.localeCompare(b.letter) ||
+      (parseInt(a.number, 10) || 0) - (parseInt(b.number, 10) || 0) ||
+      a.name.localeCompare(b.name, 'nl'));
+    renderAll();
+  });
+  $('toggleAllBtn').addEventListener('click', () => {
+    const allOn = state.labels.every(l => l.print !== false);
+    state.labels.forEach(l => l.print = !allOn);
+    renderAll();
+  });
+
+  $('printBtn').addEventListener('click', () => { buildPrint(); window.print(); });
+  window.addEventListener('beforeprint', buildPrint);
+  window.addEventListener('afterprint', () => { $('printRoot').innerHTML = ''; });
+
+  $('pdfBtn').addEventListener('click', () => {
+    if (!window.jspdf) { alert('De PDF-module is niet geladen. Herlaad de pagina en probeer opnieuw.'); return; }
+    deliver(makePDF(), `plantmagneten-${today()}.pdf`);
+  });
+
+  $('exportBtn').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    deliver(blob, `plantmagneten-${today()}.json`);
+  });
+  $('importBtn').addEventListener('click', () => $('importFile').click());
+  $('importFile').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        if (!Array.isArray(data.labels)) throw new Error('geen lijst');
+        if (state.labels.length && !confirm('De huidige lijst wordt vervangen door de lijst uit het bestand. Doorgaan?')) return;
+        state.labels = data.labels.map(normalize);
+        if (data.settings) state.settings = { ...DEFAULT_SETTINGS, ...data.settings };
+        writeSettings(); stopEdit(); renderAll();
+      } catch (err) {
+        alert('Dit bestand kan niet worden ingeladen. Kies een bestand dat met “Lijst opslaan als bestand” is gemaakt.');
+      } finally {
+        e.target.value = '';
+      }
+    };
+    reader.readAsText(file);
+  });
+  $('clearBtn').addEventListener('click', () => {
+    if (!state.labels.length) return;
+    if (!confirm('Alle magneten wissen? Dit kan niet ongedaan worden gemaakt.')) return;
+    state.labels = [];
+    stopEdit(); renderAll();
+  });
+
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => { scaleSheets(); renderLive(); }, 100);
+  });
+
+  // ---------- start ----------
+  load();
+  fillSelects();
+  writeSettings();
+  $('number').value = nextNumber();
+  renderAll();
+  loadFonts();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { renderSheets(); renderLive(); });
+  if (isIOS && !isStandalone) $('installHint').classList.remove('hidden');
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+</script>
+</body>
+</html>

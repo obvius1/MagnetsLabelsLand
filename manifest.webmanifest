@@ -1,0 +1,16 @@
+{
+  "name": "Plantmagneten",
+  "short_name": "Plantmagneten",
+  "description": "Magneten voor het teeltbord invullen en afdrukken op A4.",
+  "lang": "nl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#EDF0E6",
+  "theme_color": "#3E6B48",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
