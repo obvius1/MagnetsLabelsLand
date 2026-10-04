@@ -116,7 +116,7 @@
   .c-letter { align-self: start; font-weight: 400; font-size: calc(var(--h) * .22); line-height: .9; }
   .c-when { align-self: end; display: grid; grid-template-columns: auto auto; justify-content: start; align-items: baseline;
     column-gap: calc(var(--h) * .05); row-gap: calc(var(--h) * .01); white-space: nowrap; overflow: hidden; }
-  .c-type { font-size: calc(var(--h) * .09); }
+  .c-type { font-size: calc(var(--h) * .125); }
   .c-period { font-size: calc(var(--h) * .12); font-weight: 700; }
   .c-num { align-self: end; justify-self: end; font-size: calc(var(--h) * .13); font-weight: 400; line-height: 1; }
   .slot-empty { position: absolute; border: 0.3mm dashed #c3cbbf; }
@@ -242,7 +242,7 @@
   const DEFAULT_SETTINGS = { w: 105, h: 30, margin: 0, gap: 0, cut: true, start: 1, v: 2 };
 
   // Verhoudingen t.o.v. de hoogte van de magneet. Gelden voor scherm, afdruk en PDF.
-  const R = { padY: .075, padX: .14, colGap: .08, name: .28, letter: .22, type: .09, period: .12, num: .13, whenGap: .05 };
+  const R = { padY: .075, padX: .14, colGap: .08, name: .28, letter: .22, type: .125, period: .12, num: .13, whenGap: .05 };
 
   const $ = id => document.getElementById(id);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
