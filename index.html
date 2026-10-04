@@ -565,7 +565,8 @@
   function deliver(blob, filename) {
     const file = new File([blob], filename, { type: blob.type });
     if (isTouch && navigator.canShare && navigator.canShare({ files: [file] })) {
-      navigator.share({ files: [file], title: filename }).catch(err => {
+      // Enkel het bestand delen: met een title of text erbij bewaart iOS die als extra .txt-bestand
+      navigator.share({ files: [file] }).catch(err => {
         if (err && err.name !== 'AbortError') download(blob, filename);
       });
       return;
