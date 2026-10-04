@@ -25,14 +25,14 @@ Tot nu toe deed hij dit manueel in Word. Dat was traag en de maten klopten niet.
 
 - **Maat:** 105 × 30 mm (breedte × hoogte). Dat is de standaard, aanpasbaar in de instellingen.
 - **Linksboven:** de naam van de plant, groot en vet. Een te lange naam krimpt automatisch tot ze past, minimaal tot 40% van de basisgrootte.
-- **Rechtsboven:** een letter van A tot L, groot en vet.
+- **Rechtsboven:** een letter van A tot L, groot maar niet vet.
 - **Linksonder:** maximaal twee regels, elk met een klein label en daarnaast de periode in het vet.
   - Regel 1: een dropdown met Zaaien, Voorzaaien, Planten, Uitplanten of Poten, met een periode van/tot.
-  - Regel 2: "Oogsten" met een periode van/tot.
+  - Regel 2: "Oogsten" met een periode van/tot. Optioneel via een vinkje (`harvest`), standaard aan.
   - Een regel zonder maanden wordt weggelaten.
   - Een periode wordt getoond als `apr – mei`. Is het één maand, dan enkel `apr`.
   - Maandafkortingen: `jan feb mrt apr mei jun jul aug sep okt nov dec`.
-- **Rechtsonder:** het nummer met een hekje ervoor, bv. `#12`.
+- **Rechtsonder:** het nummer met een hekje ervoor, bv. `#12`, niet vet. Het nummer is de plaats op het bord en telt niet vanzelf op.
 - Zwart op wit, om printerinkt te sparen. Snijlijnen zijn optioneel (lichtgrijs, 0,2 mm).
 
 **Bewuste keuzes:**
@@ -55,10 +55,10 @@ Tot nu toe deed hij dit manueel in Word. Dat was traag en de maten klopten niet.
    - In de CSS staan ze als `calc(var(--h) * …)` in `.card`, `.c-name span`, `.c-letter`, `.c-type`, `.c-period` en `.c-num`.
    - In de JS staan ze in het object `R`, dat `makePDF()` gebruikt.
    - Pas je er één aan, pas dan ook de andere aan. Anders verschillen het scherm en de afdruk van de PDF.
-2. **Verhoog `CACHE` in `sw.js` bij elke wijziging** (nu `plantmagneten-v3`). Anders kan de geïnstalleerde PWA een oude versie blijven tonen. De service worker werkt network-first, met de cache als fallback.
+2. **Verhoog `CACHE` in `sw.js` bij elke wijziging** (nu `plantmagneten-v4`). Anders kan de geïnstalleerde PWA een oude versie blijven tonen. De service worker werkt network-first, met de cache als fallback.
 3. **Houd `makePDF()` en `navigator.share()` synchroon binnen de klik.** Safari op iOS weigert `share()` als er eerst een `await` zat (de user activation is dan verlopen). Daarom worden de lettertypes bij het opstarten voorgeladen als base64 in `fontData`. Kunnen ze niet geladen worden, dan valt de PDF terug op Helvetica.
 4. **Opslag:** `localStorage` met sleutel `plantmagneten-v1`, als `{ labels: [...], settings: {...} }`.
-   - Een label ziet er zo uit: `{ id, name, type, from, to, hFrom, hTo, letter, number, print }`. Maanden zijn index 0–11 of `null`.
+   - Een label ziet er zo uit: `{ id, name, type, from, to, hFrom, hTo, harvest, letter, number, print }`. Maanden zijn index 0–11 of `null`.
    - `normalize()` maakt oude of geïmporteerde data veilig.
    - `settings.v` is een schemaversie. Instellingen zonder `v` worden vervangen door de nieuwe standaard (105 × 30).
    - Verander je de structuur, voeg dan een migratie toe in `load()` en `normalize()` en verhoog `v`. Bestaande data mag nooit verloren gaan.
@@ -78,7 +78,7 @@ Tot nu toe deed hij dit manueel in Word. Dat was traag en de maten klopten niet.
 
 - GitHub Pages: Settings → Pages → Deploy from a branch → `main`, map `/ (root)`.
 - Alle paden zijn relatief (`./`), zodat het werkt onder `https://<user>.github.io/<repo>/`.
-- De service worker registreert alleen over https, dus lokaal testen kan het best met `python3 -m http.server`. Via `file://` werken de service worker en het laden van de lettertypes voor de PDF niet.
+- De service worker registreert alleen over https, dus lokaal testen kan het best met `python3 -m http.server` (staat ook in `.claude/launch.json`). Via `file://` werken de service worker en het laden van de lettertypes voor de PDF niet.
 
 ## Git-afspraken
 

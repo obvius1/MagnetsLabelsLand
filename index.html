@@ -37,6 +37,9 @@
   section.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px; margin-bottom: 20px; }
   h2 { font-weight: 700; font-size: 22px; margin: 0 0 14px; }
   h3 { font-weight: 700; font-size: 17px; margin: 0; grid-column: span 6; padding-top: 6px; }
+  h3.h3check { display: flex; align-items: center; gap: 10px; }
+  h3.h3check label { font-size: inherit; color: inherit; cursor: pointer; }
+  select:disabled { opacity: .45; }
 
   .grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px 14px; }
   .f { display: flex; flex-direction: column; gap: 4px; }
@@ -108,13 +111,13 @@
   }
   .card.cut { outline: 0.2mm solid #8a948c; outline-offset: -0.1mm; }
   .c-name { overflow: hidden; align-self: start; }
-  .c-name span { display: inline-block; white-space: nowrap; font-weight: 700; font-size: calc(var(--h) * .24); line-height: 1; }
-  .c-letter { align-self: start; font-weight: 700; font-size: calc(var(--h) * .28); line-height: .9; }
+  .c-name span { display: inline-block; white-space: nowrap; font-weight: 700; font-size: calc(var(--h) * .28); line-height: 1; }
+  .c-letter { align-self: start; font-weight: 400; font-size: calc(var(--h) * .22); line-height: .9; }
   .c-when { align-self: end; display: grid; grid-template-columns: auto auto; justify-content: start; align-items: baseline;
     column-gap: calc(var(--h) * .05); row-gap: calc(var(--h) * .01); white-space: nowrap; overflow: hidden; }
   .c-type { font-size: calc(var(--h) * .09); }
   .c-period { font-size: calc(var(--h) * .12); font-weight: 700; }
-  .c-num { align-self: end; justify-self: end; font-size: calc(var(--h) * .13); font-weight: 700; line-height: 1; }
+  .c-num { align-self: end; justify-self: end; font-size: calc(var(--h) * .13); font-weight: 400; line-height: 1; }
   .slot-empty { position: absolute; border: 0.3mm dashed #c3cbbf; }
 
   #printRoot { display: none; }
@@ -157,7 +160,7 @@
           <div class="f s2"><label for="from">Van</label><select id="from"></select></div>
           <div class="f s2"><label for="to">Tot</label><select id="to"></select></div>
 
-          <h3>Oogsten</h3>
+          <h3 class="h3check"><input id="harvest" type="checkbox" checked><label for="harvest">Oogsten</label></h3>
           <div class="f s2 full" aria-hidden="true"></div>
           <div class="f s2"><label for="hFrom">Van</label><select id="hFrom"></select></div>
           <div class="f s2"><label for="hTo">Tot</label><select id="hTo"></select></div>
@@ -241,7 +244,7 @@
   const DEFAULT_SETTINGS = { w: 105, h: 30, margin: 0, gap: 0, cut: true, start: 1, v: 2 };
 
   // Verhoudingen t.o.v. de hoogte van de magneet. Gelden voor scherm, afdruk en PDF.
-  const R = { padY: .075, padX: .14, colGap: .08, name: .24, letter: .28, type: .09, period: .12, num: .13, whenGap: .05 };
+  const R = { padY: .075, padX: .14, colGap: .08, name: .28, letter: .22, type: .09, period: .12, num: .13, whenGap: .05 };
 
   const $ = id => document.getElementById(id);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -263,6 +266,7 @@
       type: TYPES.includes(l.type) ? l.type : 'Zaaien',
       from: num(l.from), to: num(l.to),
       hFrom: num(l.hFrom), hTo: num(l.hTo),
+      harvest: l.harvest !== false,
       letter: LETTERS.includes(l.letter) ? l.letter : 'A',
       number: l.number == null ? '' : String(l.number),
       print: l.print !== false
@@ -294,7 +298,7 @@
     const out = [];
     const sow = range(l.from, l.to);
     if (sow) out.push([l.type, sow]);
-    const harvest = range(l.hFrom, l.hTo);
+    const harvest = l.harvest !== false ? range(l.hFrom, l.hTo) : '';
     if (harvest) out.push(['Oogsten', harvest]);
     return out;
   }
@@ -361,10 +365,6 @@
     $('from').value = '3'; $('to').value = '4';
     $('hFrom').value = '6'; $('hTo').value = '8';
   }
-  function nextNumber() {
-    const nums = state.labels.map(l => parseInt(l.number, 10)).filter(n => !isNaN(n));
-    return nums.length ? Math.max(...nums) + 1 : 1;
-  }
   const selNum = id => $(id).value === '' ? null : parseInt($(id).value, 10);
   const setSel = (id, v) => { $(id).value = v == null ? '' : String(v); };
   function readForm() {
@@ -373,6 +373,7 @@
       type: $('type').value,
       from: selNum('from'), to: selNum('to'),
       hFrom: selNum('hFrom'), hTo: selNum('hTo'),
+      harvest: $('harvest').checked,
       letter: $('letter').value,
       number: $('number').value.trim()
     };
@@ -382,9 +383,11 @@
     $('type').value = l.type;
     setSel('from', l.from); setSel('to', l.to);
     setSel('hFrom', l.hFrom); setSel('hTo', l.hTo);
+    $('harvest').checked = l.harvest !== false; syncHarvest();
     $('letter').value = l.letter;
     $('number').value = l.number;
   }
+  function syncHarvest() { $('hFrom').disabled = $('hTo').disabled = !$('harvest').checked; }
   function renderLive() {
     const s = state.settings;
     const holder = $('liveHolder');
@@ -414,7 +417,6 @@
     $('submitBtn').textContent = 'Magneet toevoegen';
     $('cancelBtn').classList.add('hidden');
     $('name').value = '';
-    $('number').value = nextNumber();
     renderLive(); renderList();
   }
 
@@ -517,14 +519,14 @@
         doc.setTextColor(0, 0, 0);
 
         // letter rechtsboven
-        doc.setFont(F, 'bold'); doc.setFontSize(fs(h * R.letter));
+        doc.setFont(F, 'normal'); doc.setFontSize(fs(h * R.letter));
         const letterW = doc.getTextWidth(item.letter);
         doc.text(item.letter, x + w - padX, y + padY + h * R.letter * 0.78, { align: 'right' });
 
         // naam linksboven, krimpt als ze te lang is
         let nameMM = h * R.name;
         const maxW = w - 2 * padX - letterW - h * R.colGap;
-        doc.setFontSize(fs(nameMM));
+        doc.setFont(F, 'bold'); doc.setFontSize(fs(nameMM));
         while (doc.getTextWidth(item.name) > maxW && nameMM > h * R.name * 0.4) { nameMM *= 0.95; doc.setFontSize(fs(nameMM)); }
         doc.text(item.name, x + padX, y + padY + nameMM * 0.78);
 
@@ -545,7 +547,7 @@
         // nummer rechtsonder
         const nt = numText(item);
         if (nt) {
-          doc.setFont(F, 'bold'); doc.setFontSize(fs(h * R.num));
+          doc.setFont(F, 'normal'); doc.setFontSize(fs(h * R.num));
           doc.text(nt, x + w - padX, bottom, { align: 'right' });
         }
       });
@@ -595,6 +597,7 @@
   // ---------- gebeurtenissen ----------
   ['name','number'].forEach(id => $(id).addEventListener('input', renderLive));
   ['type','from','to','hFrom','hTo','letter'].forEach(id => $(id).addEventListener('change', renderLive));
+  $('harvest').addEventListener('change', () => { syncHarvest(); renderLive(); });
 
   $('form').addEventListener('submit', e => {
     e.preventDefault();
@@ -606,9 +609,8 @@
       save(); stopEdit(); renderSheets();
     } else {
       state.labels.push(normalize({ ...data, print: true }));
-      // keuzes blijven staan voor de volgende plant, het nummer schuift op
+      // keuzes blijven staan voor de volgende plant
       $('name').value = '';
-      $('number').value = nextNumber();
       renderAll();
       if (!isTouch) $('name').focus();
     }
@@ -626,7 +628,7 @@
     if (act === 'print') { state.labels[i].print = btn.checked; save(); renderSheets(); }
     if (act === 'edit') startEdit(id);
     if (act === 'copy') {
-      const copy = { ...state.labels[i], id: uid(), number: String(nextNumber()) };
+      const copy = { ...state.labels[i], id: uid() };
       state.labels.splice(i + 1, 0, copy);
       renderAll();
       startEdit(copy.id);
@@ -703,7 +705,6 @@
   load();
   fillSelects();
   writeSettings();
-  $('number').value = nextNumber();
   renderAll();
   loadFonts();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { renderSheets(); renderLive(); });
