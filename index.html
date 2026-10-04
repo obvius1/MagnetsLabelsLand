@@ -44,7 +44,8 @@
   .grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px 14px; }
   .f { display: flex; flex-direction: column; gap: 4px; }
   .f.s6 { grid-column: span 6; } .f.s3 { grid-column: span 3; } .f.s2 { grid-column: span 2; }
-  @media (max-width: 520px) { .f.s2 { grid-column: span 3; } .f.s2.full { grid-column: span 6; } }
+  .f.end { justify-content: flex-end; }
+  @media (max-width: 520px) { .f.s2 { grid-column: span 3; } .f.s2.full { grid-column: span 6; } .f.spacer { display: none; } }
   label { font-size: 15px; color: var(--muted); }
   input, select {
     font: inherit; font-size: 18px; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 8px;
@@ -153,15 +154,12 @@
           </div>
 
           <h3>In de grond</h3>
-          <div class="f s2 full">
-            <label for="type">Wat</label>
-            <select id="type"></select>
-          </div>
+          <div class="f s2 full end"><select id="type" aria-label="Zaaien of planten"></select></div>
           <div class="f s2"><label for="from">Van</label><select id="from"></select></div>
           <div class="f s2"><label for="to">Tot</label><select id="to"></select></div>
 
           <h3 class="h3check"><input id="harvest" type="checkbox" checked><label for="harvest">Oogsten</label></h3>
-          <div class="f s2 full" aria-hidden="true"></div>
+          <div class="f s2 full spacer" aria-hidden="true"></div>
           <div class="f s2"><label for="hFrom">Van</label><select id="hFrom"></select></div>
           <div class="f s2"><label for="hTo">Tot</label><select id="hTo"></select></div>
 
@@ -272,15 +270,23 @@
       print: l.print !== false
     };
   }
+  const normalizeList = list => list.filter(l => l && typeof l === 'object').map(normalize);
+  function normalizeSettings(raw) {
+    const D = DEFAULT_SETTINGS;
+    const n = (v, min, d) => { const x = parseFloat(v); return isFinite(x) && x >= min ? x : d; };
+    raw = raw || {};
+    const keep = { start: Math.round(n(raw.start, 1, 1)), cut: raw.cut !== false };
+    // oude standaardmaat (100 x 40 mm, zonder v) vervangen door de echte maat van de magneten
+    if (!raw.v) return { ...D, ...keep };
+    return { ...D, ...keep, w: n(raw.w, 10, D.w), h: n(raw.h, 10, D.h), margin: n(raw.margin, 0, D.margin), gap: n(raw.gap, 0, D.gap), v: D.v };
+  }
   function load() {
     try {
       const raw = localStorage.getItem(KEY);
       if (raw) {
         const data = JSON.parse(raw);
-        if (Array.isArray(data.labels)) state.labels = data.labels.map(normalize);
-        if (data.settings) state.settings = { ...DEFAULT_SETTINGS, ...data.settings };
-        // oude standaardmaat (100 x 40 mm) vervangen door de echte maat van de magneten
-        if (!data.settings || !data.settings.v) state.settings = { ...DEFAULT_SETTINGS, start: state.settings.start || 1, cut: state.settings.cut !== false };
+        if (Array.isArray(data.labels)) state.labels = normalizeList(data.labels);
+        state.settings = normalizeSettings(data.settings);
       }
     } catch (e) { /* leeg beginnen */ }
   }
@@ -677,8 +683,8 @@
         const data = JSON.parse(reader.result);
         if (!Array.isArray(data.labels)) throw new Error('geen lijst');
         if (state.labels.length && !confirm('De huidige lijst wordt vervangen door de lijst uit het bestand. Doorgaan?')) return;
-        state.labels = data.labels.map(normalize);
-        if (data.settings) state.settings = { ...DEFAULT_SETTINGS, ...data.settings };
+        state.labels = normalizeList(data.labels);
+        if (data.settings) state.settings = normalizeSettings(data.settings);
         writeSettings(); stopEdit(); renderAll();
       } catch (err) {
         alert('Dit bestand kan niet worden ingeladen. Kies een bestand dat met “Lijst opslaan als bestand” is gemaakt.');
