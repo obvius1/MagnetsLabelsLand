@@ -26,7 +26,8 @@
   *, *::before, *::after { box-sizing: inherit; }
   html { scroll-padding-top: env(safe-area-inset-top, 0px); -webkit-text-size-adjust: 100%; }
   body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font); font-size: 17px; line-height: 1.45; }
-  header { padding: 28px 24px 8px; max-width: 1400px; margin: 0 auto; }
+  header { padding: 28px 24px 8px; max-width: 1400px; margin: 0 auto; position: relative; }
+  .version { position: absolute; top: 8px; right: 24px; font-size: 13px; color: var(--muted); }
   h1 { font-weight: 700; font-size: clamp(32px, 5vw, 50px); line-height: 1; margin: 0 0 6px; letter-spacing: -0.02em; }
   header p { margin: 0; color: var(--muted); max-width: 60ch; }
   .install { margin-top: 12px; padding: 10px 14px; border-radius: 10px; background: #f6efd9; border: 1px solid #e4d3a3; max-width: 60ch; }
@@ -70,6 +71,18 @@
   button.danger { color: var(--danger); }
   button.small { font-size: 15px; padding: 7px 11px; }
   .hidden { display: none !important; }
+
+  /* ---------- suggesties bij de naam ---------- */
+  .ac { position: relative; }
+  .suggest { position: absolute; left: 0; right: 0; top: 100%; z-index: 20; margin: 4px 0 0; padding: 4px; list-style: none;
+    background: #fff; border: 1.5px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px rgba(30,43,34,.18);
+    max-height: 60vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .suggest button { display: block; width: 100%; text-align: left; border: 0; border-radius: 8px; padding: 10px 12px; background: none; font-size: 18px; line-height: 1.3; }
+  .suggest button:hover, .suggest button.active { background: #eef2e8; }
+  .suggest b { display: block; }
+  .suggest em { font-style: normal; font-weight: 400; color: var(--muted); }
+  .suggest small { display: block; color: var(--muted); font-size: 15px; }
+  .suggest .own { color: var(--leaf); font-weight: 700; }
 
   .list { list-style: none; margin: 0; padding: 0; }
   .list li { display: grid; grid-template-columns: auto 52px minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
@@ -137,6 +150,7 @@
 </head>
 <body>
 <header>
+  <span class="version" id="version"></span>
   <h1>Plantmagneten</h1>
   <p>Vul de planten in, kijk hoe het blad eruitziet en druk af op A4 of sla op als PDF.</p>
   <p class="install hidden" id="installHint">Tip voor de iPad: tik op <strong>Deel</strong> en kies <strong>Zet op beginscherm</strong>. Open Plantmagneten daarna altijd via dat icoon, dan blijft de lijst bewaard.</p>
@@ -148,9 +162,10 @@
       <h2 id="formTitle">Nieuwe magneet</h2>
       <form id="form" autocomplete="off">
         <div class="grid">
-          <div class="f s6">
+          <div class="f s6 ac">
             <label for="name">Naam van de plant</label>
-            <input id="name" required placeholder="bv. Tomaat Moneymaker">
+            <input id="name" required placeholder="bv. Tomaat Moneymaker" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="suggest" autocorrect="off" spellcheck="false">
+            <ul id="suggest" class="suggest hidden" role="listbox" aria-label="Suggesties"></ul>
           </div>
 
           <h3>In de grond</h3>
@@ -601,13 +616,136 @@
   }
   $('sc').addEventListener('change', () => { state.settings.cut = $('sc').checked; renderAll(); });
 
+  // ---------- plantenlijst (planten.json) en suggesties bij de naam ----------
+  // De lijst komt mee met de app (ook offline). Bij het typen wordt niets op internet opgezocht.
+  let catalog = [];
+  let sugg = [], active = -1;
+  const fold = s => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const words = s => fold(s).split(/[\s\-'\u2019().,]+/).filter(Boolean);
+  const mIdx = m => { const i = MONTHS.indexOf(m); return i < 0 ? null : i; };
+  function loadCatalog() {
+    fetch('planten.json').then(r => r.json()).then(data => {
+      const out = [];
+      (data.planten || []).forEach(p => {
+        if (!p || !p.naam || !TYPES.includes(p.type)) return;
+        const hFrom = mIdx(p.oogstVan), hTo = mIdx(p.oogstTot);
+        const base = { type: p.type, from: mIdx(p.van), to: mIdx(p.tot), hFrom, hTo, harvest: hFrom != null || hTo != null, note: p.omschrijving || '' };
+        // zoekwoorden: andere (Vlaamse) namen, bv. ajuin voor ui
+        const alias = Array.isArray(p.zoekwoorden) ? p.zoekwoorden : [];
+        const cropWords = words([p.naam, base.note, ...alias].join(' '));
+        const add = (name, ras) => out.push({ ...base, name, key: fold(name), base: !ras, words: cropWords, rasWords: words(ras) });
+        add(p.naam, '');
+        (p.rassen || []).forEach(r => add(p.naam + ' ' + r, r));
+      });
+      catalog = out;
+    }).catch(() => { /* zonder lijst: gewoon zelf invullen */ });
+  }
+  // Hoe goed past een getypt woord bij een woord uit de naam: 0 = exact, 1 = achteraan ("sla" in kropsla),
+  // 2 = vooraan ("tom" in tomaat), 3 = ergens middenin, -1 = niet. In het Nederlands staat het hoofdwoord achteraan.
+  const fit = (t, w) => w === t ? 0 : t.length >= 3 && w.endsWith(t) ? 1 : w.startsWith(t) ? 2 : t.length >= 3 && w.includes(t) ? 3 : -1;
+  // Elk getypt woord moet ergens passen; het slechtst passende woord bepaalt de score (-1 = geen suggestie).
+  // Een treffer in de rasnaam telt minder dan in de gewasnaam: "tom" geeft eerst Tomaat, pas later "Tom Thumb".
+  function score(c, q) {
+    let worst = 0;
+    for (const t of q) {
+      let best = -1;
+      const consider = f => { if (f >= 0 && (best < 0 || f < best)) best = f; };
+      for (const w of c.words) consider(fit(t, w));
+      for (const w of c.rasWords || []) { const f = fit(t, w); if (f >= 0) consider(f + 3); }
+      if (best < 0) return -1;
+      worst = Math.max(worst, best);
+    }
+    return worst;
+  }
+  function findSuggestions(text) {
+    const q = words(text);
+    if (fold(text.trim()).length < 2) return [];
+    // eigen magneten eerst: wat hij zelf al eens gemaakt heeft
+    const seen = new Set(), own = [];
+    for (let i = state.labels.length - 1; i >= 0; i--) {
+      const l = state.labels[i], key = fold(l.name.trim());
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      const c = { ...l, key, words: words(l.name), own: true };
+      if (score(c, q) >= 0) own.push(c);
+    }
+    // daarna de lijst: best passend eerst, gewassen voor rassen, dan alfabetisch
+    const fromList = [];
+    for (const c of catalog) {
+      if (seen.has(c.key)) continue;
+      const sc = score(c, q);
+      if (sc >= 0) fromList.push({ c, r: sc * 2 + (c.base ? 0 : 1) });
+    }
+    fromList.sort((a, b) => a.r - b.r || a.c.name.localeCompare(b.c.name, 'nl'));
+    return own.concat(fromList.map(x => x.c)).slice(0, 8);
+  }
+  function renderSuggest() {
+    sugg = findSuggestions($('name').value);
+    active = -1;
+    const ul = $('suggest');
+    if (!sugg.length) { closeSuggest(); return; }
+    ul.innerHTML = sugg.map((c, i) => {
+      const when = rows({ ...c, harvest: c.harvest !== false }).map(([t, p]) => esc(t + ' ' + p)).join(' · ');
+      const tag = c.own ? ' <span class="own">eigen</span>' : (c.note ? ` <em>(${esc(c.note)})</em>` : '');
+      return `<li role="option"><button type="button" data-i="${i}"><b>${esc(c.name)}${tag}</b><small>${when || '&nbsp;'}</small></button></li>`;
+    }).join('');
+    ul.classList.remove('hidden');
+    $('name').setAttribute('aria-expanded', 'true');
+    // niet onder het schermtoetsenbord laten verdwijnen: enkel de zichtbare ruimte gebruiken
+    const vv = window.visualViewport;
+    if (vv) ul.style.maxHeight = Math.max(160, vv.offsetTop + vv.height - $('name').getBoundingClientRect().bottom - 16) + 'px';
+  }
+  function closeSuggest() {
+    sugg = []; active = -1;
+    $('suggest').classList.add('hidden');
+    $('suggest').innerHTML = '';
+    $('name').setAttribute('aria-expanded', 'false');
+  }
+  function setActive(i) {
+    const btns = $('suggest').querySelectorAll('button');
+    if (!btns.length) return;
+    active = (i + btns.length) % btns.length;
+    btns.forEach((b, j) => b.classList.toggle('active', j === active));
+    btns[active].scrollIntoView({ block: 'nearest' });
+  }
+  // Vult naam, soort, maanden en oogst in. Letter en nummer (plaats op het bord) blijven staan.
+  function pickSuggestion(c) {
+    $('name').value = c.name;
+    $('type').value = c.type;
+    setSel('from', c.from); setSel('to', c.to);
+    $('harvest').checked = c.harvest !== false;
+    if (c.harvest !== false) { setSel('hFrom', c.hFrom); setSel('hTo', c.hTo); }
+    syncHarvest();
+    closeSuggest();
+    renderLive();
+    if (isTouch) $('name').blur();
+  }
+
   // ---------- gebeurtenissen ----------
   ['name','number'].forEach(id => $(id).addEventListener('input', renderLive));
   ['type','from','to','hFrom','hTo','letter'].forEach(id => $(id).addEventListener('change', renderLive));
   $('harvest').addEventListener('change', () => { syncHarvest(); renderLive(); });
 
+  $('name').addEventListener('input', renderSuggest);
+  $('name').addEventListener('focus', renderSuggest);
+  $('name').addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== $('name')) closeSuggest(); }, 200));
+  $('name').addEventListener('keydown', e => {
+    if ($('suggest').classList.contains('hidden')) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); setActive(active + 1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(active - 1); }
+    else if (e.key === 'Enter' && active >= 0) { e.preventDefault(); pickSuggestion(sugg[active]); }
+    else if (e.key === 'Escape') { e.stopPropagation(); closeSuggest(); }
+  });
+  // muisklik houdt de focus in het naamveld; aanraken werkt via click
+  $('suggest').addEventListener('mousedown', e => e.preventDefault());
+  $('suggest').addEventListener('click', e => {
+    const b = e.target.closest('button[data-i]');
+    if (b && sugg[b.dataset.i]) pickSuggestion(sugg[b.dataset.i]);
+  });
+
   $('form').addEventListener('submit', e => {
     e.preventDefault();
+    closeSuggest();
     const data = readForm();
     if (!data.name) { $('name').focus(); return; }
     if (editingId) {
@@ -714,6 +852,12 @@
   writeSettings();
   renderAll();
   loadFonts();
+  loadCatalog();
+  // versienummer uit CACHE in sw.js, zodat het maar op één plaats staat (offline uit de cache)
+  fetch('sw.js', { cache: 'no-cache' }).then(r => r.text()).then(t => {
+    const m = t.match(/CACHE\s*=\s*'plantmagneten-v(\d+)'/);
+    if (m) $('version').textContent = 'versie ' + m[1];
+  }).catch(() => {});
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { renderSheets(); renderLive(); });
   if (isIOS && !isStandalone) $('installHint').classList.remove('hidden');
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});

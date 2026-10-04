@@ -1,9 +1,10 @@
 // Verhoog dit nummer bij elke wijziging aan de bestanden, dan haalt de app de nieuwe versie op.
-const CACHE = 'plantmagneten-v9';
+const CACHE = 'plantmagneten-v11';
 const FILES = [
   './',
   './index.html',
   './manifest.webmanifest',
+  './planten.json',
   './vendor/jspdf.umd.min.js',
   './fonts/AtkinsonHyperlegible-Regular.ttf',
   './fonts/AtkinsonHyperlegible-Bold.ttf',
