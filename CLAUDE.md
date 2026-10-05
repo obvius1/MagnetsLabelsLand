@@ -27,6 +27,7 @@ Tot nu toe deed hij dit manueel in Word. Dat was traag en de maten klopten niet.
 
 - **Maat:** 105 × 30 mm (breedte × hoogte). Dat is de standaard, aanpasbaar in de instellingen.
 - **Linksboven:** de naam van de plant, groot en vet. Een te lange naam krimpt automatisch tot ze past, minimaal tot 40% van de basisgrootte.
+- **Toevoeging:** optioneel woord achter de naam, niet vet en zonder haakjes, bv. **Appel Jonagold** winter. Naam en toevoeging krimpen samen. Oude data met "(winter)" in de naam zet `splitNote()` om.
 - **Rechtsboven:** een letter van A tot L, groot maar niet vet.
 - **Linksonder:** maximaal twee regels, elk met een klein label en daarnaast de periode in het vet.
   - Regel 1: een dropdown met Zaaien, Voorzaaien, Planten, Uitplanten, Poten of Snoeien (zonder label erboven, enkel `aria-label`), met een periode van/tot. Via "+ Tweede periode" kan er een tweede periode bij (bv. winter- en zomersnoei); die komt op dezelfde regel: `dec – feb, jul – aug`.
@@ -43,7 +44,7 @@ Tot nu toe deed hij dit manueel in Word. Dat was traag en de maten klopten niet.
 
 ## Plantenlijst en suggesties
 
-- Bij het typen van de naam (vanaf 2 letters) toont een lijst onder het veld maximaal 8 suggesties. Een suggestie aantikken vult naam, type, van/tot (en eventueel de tweede periode), het vinkje Oogsten en de oogstmaanden in. Letter en nummer blijven staan. Een omschrijving komt mee in de naam: "Appel Elstar (herfst)".
+- Bij het typen van de naam (vanaf 2 letters) toont een lijst onder het veld maximaal 8 suggesties. Een suggestie aantikken vult naam, type, van/tot (en eventueel de tweede periode), het vinkje Oogsten en de oogstmaanden in. Letter en nummer blijven staan. De omschrijving van de lijst komt in het veld "Toevoeging" (`note`).
 - De lijst sluit met de knop "Sluiten, zelf verder invullen" onderaan, door ergens anders te tikken, of met Escape. Dat is belangrijk op de iPad: daar verliest het naamveld de focus niet altijd als je ernaast tikt.
 - **Bewuste keuze:** er wordt niets op internet opgezocht. De lijst zit in `planten.json`, komt mee met de app en staat in de cache van de service worker (werkt dus offline).
 - Eerst komen de eigen magneten (label "eigen"): wat hij zelf al eens gemaakt heeft, met zijn eigen maanden. Daarna de lijst, met gewassen vóór rassen.
@@ -71,11 +72,11 @@ Tot nu toe deed hij dit manueel in Word. Dat was traag en de maten klopten niet.
    - In de CSS staan ze als `calc(var(--h) * …)` in `.card`, `.c-name span`, `.c-letter`, `.c-type`, `.c-period` en `.c-num`.
    - In de JS staan ze in het object `R`, dat `makePDF()` gebruikt.
    - Pas je er één aan, pas dan ook de andere aan. Anders verschillen het scherm en de afdruk van de PDF.
-2. **Verhoog `CACHE` in `sw.js` bij elke wijziging** (nu `plantmagneten-v14`). Anders kan de geïnstalleerde PWA een oude versie blijven tonen. Het nummer verschijnt ook klein rechtsboven op de pagina: `index.html` leest het uit `sw.js`, houd dus de vorm `'plantmagneten-vN'`. De service worker werkt network-first, met de cache als fallback.
+2. **Verhoog `CACHE` in `sw.js` bij elke wijziging** (nu `plantmagneten-v15`). Anders kan de geïnstalleerde PWA een oude versie blijven tonen. Het nummer verschijnt ook klein rechtsboven op de pagina: `index.html` leest het uit `sw.js`, houd dus de vorm `'plantmagneten-vN'`. De service worker werkt network-first, met de cache als fallback.
 3. **Houd `makePDF()` en `navigator.share()` synchroon binnen de klik.** Safari op iOS weigert `share()` als er eerst een `await` zat (de user activation is dan verlopen). Daarom worden de lettertypes bij het opstarten voorgeladen als base64 in `fontData`. Kunnen ze niet geladen worden, dan valt de PDF terug op Helvetica.
    - Geef aan `share()` enkel `files` mee, geen `title` of `text`. Anders bewaart iOS die bij "Bewaar in Bestanden" als extra `.txt`-bestand.
 4. **Opslag:** `localStorage` met sleutel `plantmagneten-v1`, als `{ labels: [...], settings: {...} }`.
-   - Een label ziet er zo uit: `{ id, name, type, from, to, from2, to2, hFrom, hTo, harvest, letter, number, print }`. Maanden zijn index 0–11 of `null`.
+   - Een label ziet er zo uit: `{ id, name, note, type, from, to, from2, to2, hFrom, hTo, harvest, letter, number, print }`. Maanden zijn index 0–11 of `null`.
    - `normalize()` maakt oude of geïmporteerde labels veilig, `normalizeList()` filtert ongeldige regels weg.
    - `normalizeSettings()` doet hetzelfde voor de instellingen. `load()` en de import gebruiken allebei deze functies.
    - `settings.v` is een schemaversie. Instellingen zonder `v` worden vervangen door de nieuwe standaard (105 × 30).

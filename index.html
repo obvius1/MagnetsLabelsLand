@@ -95,6 +95,7 @@
   .code { font-weight: 700; font-size: 20px; line-height: 1.1; }
   .code small { display: block; font-weight: 400; font-size: 14px; color: var(--muted); }
   .what b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .what b i { font-style: normal; font-weight: 400; }
   .what span { display: block; color: var(--muted); font-size: 15px; }
   .row-btns { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
   .list-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
@@ -129,6 +130,7 @@
   .card.cut { outline: 0.2mm solid #8a948c; outline-offset: -0.1mm; }
   .c-name { overflow: hidden; align-self: start; }
   .c-name span { display: inline-block; white-space: nowrap; font-weight: 700; font-size: calc(var(--h) * .28); line-height: 1; }
+  .c-name .c-note { font-weight: 400; }
   .c-letter { align-self: start; font-weight: 400; font-size: calc(var(--h) * .22); line-height: .9; }
   .c-when { align-self: end; display: grid; grid-template-columns: auto auto; justify-content: start; align-items: baseline;
     column-gap: calc(var(--h) * .05); row-gap: calc(var(--h) * .01); white-space: nowrap; overflow: hidden; }
@@ -169,6 +171,10 @@
             <label for="name">Naam van de plant</label>
             <input id="name" required placeholder="bv. Tomaat Moneymaker" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="suggest" autocorrect="off" spellcheck="false">
             <ul id="suggest" class="suggest hidden" role="listbox" aria-label="Suggesties"></ul>
+          </div>
+          <div class="f s6">
+            <label for="note">Toevoeging (komt niet in het vet), bv. winter</label>
+            <input id="note" placeholder="bv. winter" autocorrect="off" spellcheck="false">
           </div>
 
           <h3>In de grond</h3>
@@ -280,11 +286,20 @@
   const fontData = { regular: null, bold: null };
 
   // ---------- opslag ----------
+  // Oude magneten hadden de toevoeging tussen haakjes in de naam ("Appel Elstar (herfst)"): die halen we eruit.
+  function splitNote(l) {
+    let name = String(l.name || '').trim(), note = l.note == null ? null : String(l.note).trim();
+    if (note === null) {
+      const m = name.match(/^(.*\S)\s*\(([^()]+)\)$/);
+      if (m) { name = m[1]; note = m[2].trim(); }
+    }
+    return { name, note: note || '' };
+  }
   function normalize(l) {
     const num = v => (v === null || v === undefined || v === '' || isNaN(parseInt(v, 10))) ? null : parseInt(v, 10);
     return {
       id: l.id || uid(),
-      name: String(l.name || ''),
+      ...splitNote(l),
       type: TYPES.includes(l.type) ? l.type : 'Zaaien',
       from: num(l.from), to: num(l.to),
       from2: num(l.from2), to2: num(l.to2),
@@ -339,7 +354,7 @@
   function cardHTML(l, s, extraStyle = '') {
     const when = rows(l).map(([t, p]) => `<span class="c-type">${esc(t)}</span><span class="c-period">${esc(p)}</span>`).join('');
     return `<div class="card${s.cut ? ' cut' : ''}" style="--h:${s.h}mm;width:${s.w}mm;height:${s.h}mm;${extraStyle}">
-      <div class="c-name"><span>${esc(l.name)}</span></div>
+      <div class="c-name"><span>${esc(l.name)}${l.note ? ` <span class="c-note">${esc(l.note)}</span>` : ''}</span></div>
       <div class="c-letter">${esc(l.letter)}</div>
       <div class="c-when">${when}</div>
       <div class="c-num">${esc(numText(l))}</div>
@@ -404,6 +419,7 @@
   function readForm() {
     return {
       name: $('name').value.trim(),
+      note: $('note').value.trim(),
       type: $('type').value,
       from: selNum('from'), to: selNum('to'),
       from2: hasPeriod2() ? selNum('from2') : null, to2: hasPeriod2() ? selNum('to2') : null,
@@ -415,6 +431,7 @@
   }
   function writeForm(l) {
     $('name').value = l.name;
+    $('note').value = l.note || '';
     $('type').value = l.type;
     setSel('from', l.from); setSel('to', l.to);
     setPeriod2(l.from2, l.to2);
@@ -461,7 +478,7 @@
     $('formTitle').textContent = 'Nieuwe magneet';
     $('submitBtn').textContent = 'Magneet toevoegen';
     $('cancelBtn').classList.add('hidden');
-    $('name').value = '';
+    $('name').value = ''; $('note').value = '';
     renderLive(); renderList();
   }
 
@@ -476,7 +493,7 @@
       <li class="${l.id === editingId ? 'editing' : ''}">
         <input type="checkbox" data-act="print" data-id="${l.id}" ${l.print !== false ? 'checked' : ''} aria-label="Afdrukken: ${esc(l.name)}">
         <div class="code">${esc(l.letter)}<small>${esc(numText(l))}</small></div>
-        <div class="what"><b>${esc(l.name)}</b><span>${rows(l).map(([t, p]) => esc(t + ' ' + p)).join(', ')}</span></div>
+        <div class="what"><b>${esc(l.name)}${l.note ? ` <i>${esc(l.note)}</i>` : ''}</b><span>${rows(l).map(([t, p]) => esc(t + ' ' + p)).join(', ')}</span></div>
         <div class="row-btns">
           <button class="small" data-act="edit" data-id="${l.id}" type="button">Aanpassen</button>
           <button class="small" data-act="copy" data-id="${l.id}" type="button">Kopiëren</button>
@@ -569,11 +586,21 @@
         doc.text(item.letter, x + w - padX, y + padY + h * R.letter * 0.78, { align: 'right' });
 
         // naam linksboven, krimpt als ze te lang is
+        // naam vet, toevoeging (bv. "winter") niet vet erachter; ze krimpen samen
         let nameMM = h * R.name;
         const maxW = w - 2 * padX - letterW - h * R.colGap;
-        doc.setFont(F, 'bold'); doc.setFontSize(fs(nameMM));
-        while (doc.getTextWidth(item.name) > maxW && nameMM > h * R.name * 0.4) { nameMM *= 0.95; doc.setFontSize(fs(nameMM)); }
-        doc.text(item.name, x + padX, y + padY + nameMM * 0.78);
+        const note = item.note ? ' ' + item.note : '';
+        const nameWidth = () => {
+          doc.setFont(F, 'bold'); const b = doc.getTextWidth(item.name);
+          doc.setFont(F, 'normal'); return b + (note ? doc.getTextWidth(note) : 0);
+        };
+        doc.setFontSize(fs(nameMM));
+        while (nameWidth() > maxW && nameMM > h * R.name * 0.4) { nameMM *= 0.95; doc.setFontSize(fs(nameMM)); }
+        const nameY = y + padY + nameMM * 0.78;
+        doc.setFont(F, 'bold');
+        const boldW = doc.getTextWidth(item.name);
+        doc.text(item.name, x + padX, nameY);
+        if (note) { doc.setFont(F, 'normal'); doc.text(note, x + padX + boldW, nameY); }
 
         // onderaan: zaaien/planten en oogsten
         const bottom = y + h - padY - h * R.period * 0.22;
@@ -692,10 +719,10 @@
     // eigen magneten eerst: wat hij zelf al eens gemaakt heeft
     const seen = new Set(), own = [];
     for (let i = state.labels.length - 1; i >= 0; i--) {
-      const l = state.labels[i], key = fold(l.name.trim());
+      const l = state.labels[i], key = fold(l.note ? `${l.name} (${l.note})` : l.name);
       if (!key || seen.has(key)) continue;
       seen.add(key);
-      const c = { ...l, key, words: words(l.name), own: true };
+      const c = { ...l, key, words: words(l.name + ' ' + (l.note || '')), own: true };
       if (score(c, q) >= 0) own.push(c);
     }
     // daarna de lijst: best passend eerst, gewassen voor rassen, dan alfabetisch
@@ -715,7 +742,7 @@
     if (!sugg.length) { closeSuggest(); return; }
     ul.innerHTML = sugg.map((c, i) => {
       const when = rows({ ...c, harvest: c.harvest !== false }).map(([t, p]) => esc(t + ' ' + p)).join(' · ');
-      const tag = c.own ? ' <span class="own">eigen</span>' : (c.note ? ` <em>(${esc(c.note)})</em>` : '');
+      const tag = (c.note ? ` <em>${esc(c.note)}</em>` : '') + (c.own ? ' <span class="own">eigen</span>' : '');
       return `<li role="option"><button type="button" data-i="${i}"><b>${esc(c.name)}${tag}</b><small>${when || '&nbsp;'}</small></button></li>`;
     }).join('') + `<li class="close-row"><button type="button" data-close>Sluiten, zelf verder invullen</button></li>`;
     ul.classList.remove('hidden');
@@ -739,7 +766,8 @@
   }
   // Vult naam, soort, maanden en oogst in. Letter en nummer (plaats op het bord) blijven staan.
   function pickSuggestion(c) {
-    $('name').value = c.full || c.name;
+    $('name').value = c.name;
+    $('note').value = c.note || '';
     $('type').value = c.type;
     setSel('from', c.from); setSel('to', c.to);
     setPeriod2(c.from2, c.to2);
@@ -752,7 +780,7 @@
   }
 
   // ---------- gebeurtenissen ----------
-  ['name','number'].forEach(id => $(id).addEventListener('input', renderLive));
+  ['name','note','number'].forEach(id => $(id).addEventListener('input', renderLive));
   ['type','from','to','from2','to2','hFrom','hTo','letter'].forEach(id => $(id).addEventListener('change', renderLive));
   $('addPeriod').addEventListener('click', () => { showPeriod2(true); renderLive(); $('from2').focus(); });
   $('removePeriod').addEventListener('click', () => { setPeriod2(null, null); renderLive(); });
@@ -792,7 +820,7 @@
     } else {
       state.labels.push(normalize({ ...data, print: true }));
       // keuzes blijven staan voor de volgende plant
-      $('name').value = '';
+      $('name').value = ''; $('note').value = '';
       renderAll();
       if (!isTouch) $('name').focus();
     }
