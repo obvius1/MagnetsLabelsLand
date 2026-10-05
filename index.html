@@ -130,7 +130,7 @@
   .card.cut { outline: 0.2mm solid #8a948c; outline-offset: -0.1mm; }
   .c-name { overflow: hidden; align-self: start; }
   .c-name span { display: inline-block; white-space: nowrap; font-weight: 700; font-size: calc(var(--h) * .28); line-height: 1; }
-  .c-name .c-note { font-weight: 400; }
+  .c-name .c-note { font-weight: 400; font-size: .75em; }
   .c-letter { align-self: start; font-weight: 400; font-size: calc(var(--h) * .22); line-height: .9; }
   .c-when { align-self: end; display: grid; grid-template-columns: auto auto; justify-content: start; align-items: baseline;
     column-gap: calc(var(--h) * .05); row-gap: calc(var(--h) * .01); white-space: nowrap; overflow: hidden; }
@@ -272,7 +272,7 @@
   const DEFAULT_SETTINGS = { w: 105, h: 30, margin: 0, gap: 0, cut: true, start: 1, v: 2 };
 
   // Verhoudingen t.o.v. de hoogte van de magneet. Gelden voor scherm, afdruk en PDF.
-  const R = { padY: .075, padX: .14, colGap: .08, name: .28, letter: .22, type: .125, period: .12, num: .13, whenGap: .05 };
+  const R = { padY: .075, padX: .14, colGap: .08, name: .28, letter: .22, type: .125, period: .12, num: .13, whenGap: .05, note: .75 };
 
   const $ = id => document.getElementById(id);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -590,17 +590,18 @@
         let nameMM = h * R.name;
         const maxW = w - 2 * padX - letterW - h * R.colGap;
         const note = item.note ? ' ' + item.note : '';
+        // de toevoeging is R.note keer zo groot als de naam (in de CSS: .c-note font-size)
         const nameWidth = () => {
-          doc.setFont(F, 'bold'); const b = doc.getTextWidth(item.name);
-          doc.setFont(F, 'normal'); return b + (note ? doc.getTextWidth(note) : 0);
+          doc.setFont(F, 'bold'); doc.setFontSize(fs(nameMM)); const b = doc.getTextWidth(item.name);
+          if (!note) return b;
+          doc.setFont(F, 'normal'); doc.setFontSize(fs(nameMM * R.note)); return b + doc.getTextWidth(note);
         };
-        doc.setFontSize(fs(nameMM));
-        while (nameWidth() > maxW && nameMM > h * R.name * 0.4) { nameMM *= 0.95; doc.setFontSize(fs(nameMM)); }
+        while (nameWidth() > maxW && nameMM > h * R.name * 0.4) nameMM *= 0.95;
         const nameY = y + padY + nameMM * 0.78;
-        doc.setFont(F, 'bold');
+        doc.setFont(F, 'bold'); doc.setFontSize(fs(nameMM));
         const boldW = doc.getTextWidth(item.name);
         doc.text(item.name, x + padX, nameY);
-        if (note) { doc.setFont(F, 'normal'); doc.text(note, x + padX + boldW, nameY); }
+        if (note) { doc.setFont(F, 'normal'); doc.setFontSize(fs(nameMM * R.note)); doc.text(note, x + padX + boldW, nameY); }
 
         // onderaan: zaaien/planten en oogsten
         const bottom = y + h - padY - h * R.period * 0.22;
