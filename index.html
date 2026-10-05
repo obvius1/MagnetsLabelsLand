@@ -84,7 +84,7 @@
   .suggest small { display: block; color: var(--muted); font-size: 15px; }
   .suggest .own { color: var(--leaf); font-weight: 700; }
   .suggest .close-row button { text-align: center; color: var(--muted); font-size: 16px; border-top: 1px solid var(--line); border-radius: 0 0 8px 8px; margin-top: 4px; }
-  .period2 { display: contents; }
+  .period2, .step2 { display: contents; }
   .link-btn { align-self: start; }
 
   .list { list-style: none; margin: 0; padding: 0; }
@@ -186,6 +186,14 @@
             <div class="f s2 full end"><button type="button" class="small danger" id="removePeriod">Weghalen</button></div>
             <div class="f s2"><label for="from2">En van</label><select id="from2"></select></div>
             <div class="f s2"><label for="to2">Tot</label><select id="to2"></select></div>
+          </div>
+          <div class="f s6" id="addStepRow"><button type="button" class="small link-btn" id="addStep">+ Nog een handeling</button></div>
+          <div class="step2 hidden" id="step2">
+            <h3>Daarna</h3>
+            <div class="f s2 full end"><select id="type2" aria-label="Tweede handeling"></select></div>
+            <div class="f s2"><label for="s2from">Van</label><select id="s2from"></select></div>
+            <div class="f s2"><label for="s2to">Tot</label><select id="s2to"></select></div>
+            <div class="f s6"><button type="button" class="small danger link-btn" id="removeStep">Tweede handeling weghalen</button></div>
           </div>
 
           <h3 class="h3check"><input id="harvest" type="checkbox" checked><label for="harvest">Oogsten</label></h3>
@@ -295,6 +303,12 @@
     }
     return { name, note: note || '' };
   }
+  // Tweede handeling op de magneet, bv. eerst Voorzaaien en daarna Uitplanten: { type, from, to } of null.
+  function normStep(st, num) {
+    if (!st || typeof st !== 'object' || !TYPES.includes(st.type)) return null;
+    const out = { type: st.type, from: num(st.from), to: num(st.to) };
+    return out.from == null && out.to == null ? null : out;
+  }
   function normalize(l) {
     const num = v => (v === null || v === undefined || v === '' || isNaN(parseInt(v, 10))) ? null : parseInt(v, 10);
     return {
@@ -303,6 +317,7 @@
       type: TYPES.includes(l.type) ? l.type : 'Zaaien',
       from: num(l.from), to: num(l.to),
       from2: num(l.from2), to2: num(l.to2),
+      step2: normStep(l.step2, num),
       hFrom: num(l.hFrom), hTo: num(l.hTo),
       harvest: l.harvest !== false,
       letter: LETTERS.includes(l.letter) ? l.letter : 'A',
@@ -345,6 +360,8 @@
     // een tweede periode (bv. winter- en zomersnoei) komt op dezelfde regel: "dec – feb, jul – aug"
     const sow = [range(l.from, l.to), range(l.from2, l.to2)].filter(Boolean).join(', ');
     if (sow) out.push([l.type, sow]);
+    const step = l.step2 ? range(l.step2.from, l.step2.to) : '';
+    if (step) out.push([l.step2.type, step]);
     const harvest = l.harvest !== false ? range(l.hFrom, l.hTo) : '';
     if (harvest) out.push(['Oogsten', harvest]);
     return out;
@@ -408,6 +425,10 @@
     $('to').innerHTML = `<option value="">–</option>` + monthOpts;
     $('from2').innerHTML = `<option value="">–</option>` + monthOpts;
     $('to2').innerHTML = `<option value="">–</option>` + monthOpts;
+    $('type2').innerHTML = TYPES.map(t => `<option>${t}</option>`).join('');
+    $('type2').value = 'Uitplanten';
+    $('s2from').innerHTML = `<option value="">–</option>` + monthOpts;
+    $('s2to').innerHTML = `<option value="">–</option>` + monthOpts;
     $('hFrom').innerHTML = `<option value="">–</option>` + monthOpts;
     $('hTo').innerHTML = `<option value="">–</option>` + monthOpts;
     $('letter').innerHTML = LETTERS.map(l => `<option>${l}</option>`).join('');
@@ -423,6 +444,7 @@
       type: $('type').value,
       from: selNum('from'), to: selNum('to'),
       from2: hasPeriod2() ? selNum('from2') : null, to2: hasPeriod2() ? selNum('to2') : null,
+      step2: hasStep2() ? { type: $('type2').value, from: selNum('s2from'), to: selNum('s2to') } : null,
       hFrom: selNum('hFrom'), hTo: selNum('hTo'),
       harvest: $('harvest').checked,
       letter: $('letter').value,
@@ -435,6 +457,7 @@
     $('type').value = l.type;
     setSel('from', l.from); setSel('to', l.to);
     setPeriod2(l.from2, l.to2);
+    setStep2(l.step2);
     setSel('hFrom', l.hFrom); setSel('hTo', l.hTo);
     $('harvest').checked = l.harvest !== false; syncHarvest();
     $('letter').value = l.letter;
@@ -448,6 +471,16 @@
   function setPeriod2(f, t) {
     setSel('from2', f); setSel('to2', t);
     showPeriod2(f != null || t != null);
+  }
+  const hasStep2 = () => !$('step2').classList.contains('hidden');
+  function showStep2(on) {
+    $('step2').classList.toggle('hidden', !on);
+    $('addStepRow').classList.toggle('hidden', on);
+  }
+  function setStep2(st) {
+    $('type2').value = st ? st.type : 'Uitplanten';
+    setSel('s2from', st ? st.from : null); setSel('s2to', st ? st.to : null);
+    showStep2(!!st);
   }
   function syncHarvest() { $('hFrom').disabled = $('hTo').disabled = !$('harvest').checked; }
   function renderLive() {
@@ -681,7 +714,8 @@
       (data.planten || []).forEach(p => {
         if (!p || !p.naam || !TYPES.includes(p.type)) return;
         const hFrom = mIdx(p.oogstVan), hTo = mIdx(p.oogstTot);
-        const base = { type: p.type, from: mIdx(p.van), to: mIdx(p.tot), from2: mIdx(p.van2), to2: mIdx(p.tot2),
+        const st = p.daarna && TYPES.includes(p.daarna.type) ? { type: p.daarna.type, from: mIdx(p.daarna.van), to: mIdx(p.daarna.tot) } : null;
+        const base = { type: p.type, from: mIdx(p.van), to: mIdx(p.tot), from2: mIdx(p.van2), to2: mIdx(p.tot2), step2: st,
           hFrom, hTo, harvest: hFrom != null || hTo != null, note: p.omschrijving || '' };
         // zoekwoorden: andere (Vlaamse) namen, bv. ajuin voor ui
         const alias = Array.isArray(p.zoekwoorden) ? p.zoekwoorden : [];
@@ -772,6 +806,7 @@
     $('type').value = c.type;
     setSel('from', c.from); setSel('to', c.to);
     setPeriod2(c.from2, c.to2);
+    setStep2(c.step2);
     $('harvest').checked = c.harvest !== false;
     if (c.harvest !== false) { setSel('hFrom', c.hFrom); setSel('hTo', c.hTo); }
     syncHarvest();
@@ -782,7 +817,9 @@
 
   // ---------- gebeurtenissen ----------
   ['name','note','number'].forEach(id => $(id).addEventListener('input', renderLive));
-  ['type','from','to','from2','to2','hFrom','hTo','letter'].forEach(id => $(id).addEventListener('change', renderLive));
+  ['type','from','to','from2','to2','type2','s2from','s2to','hFrom','hTo','letter'].forEach(id => $(id).addEventListener('change', renderLive));
+  $('addStep').addEventListener('click', () => { showStep2(true); renderLive(); $('type2').focus(); });
+  $('removeStep').addEventListener('click', () => { setStep2(null); renderLive(); });
   $('addPeriod').addEventListener('click', () => { showPeriod2(true); renderLive(); $('from2').focus(); });
   $('removePeriod').addEventListener('click', () => { setPeriod2(null, null); renderLive(); });
   $('harvest').addEventListener('change', () => { syncHarvest(); renderLive(); });

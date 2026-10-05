@@ -1,5 +1,5 @@
 // Verhoog dit nummer bij elke wijziging aan de bestanden, dan haalt de app de nieuwe versie op.
-const CACHE = 'plantmagneten-v16';
+const CACHE = 'plantmagneten-v17';
 const FILES = [
   './',
   './index.html',
