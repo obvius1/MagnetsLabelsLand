@@ -69,6 +69,13 @@
   button.primary:hover { background: var(--leaf-dark); }
   button.big { font-size: 19px; padding: 13px 20px; }
   button.danger { color: var(--danger); }
+  button.danger-fill { background: var(--danger); border-color: var(--danger); color: #fff; font-weight: 700; }
+
+  /* ---------- eigen bevestigingsvenster ---------- */
+  .modal { position: fixed; inset: 0; z-index: 50; background: rgba(30,43,34,.45); display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .modal-box { background: var(--panel); border-radius: 14px; padding: 22px; width: 100%; max-width: 440px; box-shadow: 0 12px 40px rgba(30,43,34,.3); }
+  .modal-box p { margin: 0; font-size: 19px; }
+  .modal-box .actions { justify-content: flex-end; }
   button.small { font-size: 15px; padding: 7px 11px; }
   .hidden { display: none !important; }
 
@@ -264,6 +271,16 @@
     <p class="hint">Kies bij het afdrukken <strong>Schaal: 100%</strong> (of “Werkelijke grootte”) en <strong>Marges: geen</strong>. Anders kloppen de maten niet. Druk de eerste keer één testblad af en leg er een magneet op.</p>
   </aside>
 </main>
+
+<div class="modal hidden" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalText">
+  <div class="modal-box">
+    <p id="modalText"></p>
+    <div class="actions">
+      <button type="button" class="big" id="modalNo">Annuleren</button>
+      <button type="button" class="big primary" id="modalYes">OK</button>
+    </div>
+  </div>
+</div>
 
 <div id="printRoot"></div>
 
@@ -514,6 +531,32 @@
     $('name').value = ''; $('note').value = '';
     renderLive(); renderList();
   }
+
+  // ---------- bevestigen ----------
+  // Eigen venster in plaats van confirm()/alert(): die worden in sommige omgevingen stil geweigerd,
+  // waardoor bv. "Wissen" niets deed. ask() geeft een Promise met true (ja) of false (annuleren).
+  function ask(text, { yes = 'OK', no = 'Annuleren', danger = false } = {}) {
+    return new Promise(resolve => {
+      $('modalText').textContent = text;
+      $('modalYes').textContent = yes;
+      $('modalYes').className = 'big ' + (danger ? 'danger-fill' : 'primary');
+      $('modalNo').textContent = no || '';
+      $('modalNo').classList.toggle('hidden', !no);
+      $('modal').classList.remove('hidden');
+      $('modalYes').focus();
+      const onKey = e => { if (e.key === 'Escape') { e.stopPropagation(); done(false); } };
+      const done = ok => {
+        $('modal').classList.add('hidden');
+        $('modalYes').onclick = $('modalNo').onclick = null;
+        document.removeEventListener('keydown', onKey, true);
+        resolve(ok);
+      };
+      $('modalYes').onclick = () => done(true);
+      $('modalNo').onclick = () => done(false);
+      document.addEventListener('keydown', onKey, true);
+    });
+  }
+  const tell = text => ask(text, { no: null });
 
   // ---------- lijst ----------
   function renderList() {
@@ -883,10 +926,13 @@
       startEdit(copy.id);
     }
     if (act === 'del') {
-      if (!confirm(`“${state.labels[i].name}” wissen?`)) return;
-      state.labels.splice(i, 1);
-      if (editingId === id) stopEdit();
-      renderAll();
+      ask(`“${state.labels[i].name}” wissen?`, { yes: 'Wissen', danger: true }).then(ok => {
+        const j = state.labels.findIndex(x => x.id === id);
+        if (!ok || j < 0) return;
+        state.labels.splice(j, 1);
+        if (editingId === id) stopEdit();
+        renderAll();
+      });
     }
   });
 
@@ -908,7 +954,7 @@
   window.addEventListener('afterprint', () => { $('printRoot').innerHTML = ''; });
 
   $('pdfBtn').addEventListener('click', () => {
-    if (!window.jspdf) { alert('De PDF-module is niet geladen. Herlaad de pagina en probeer opnieuw.'); return; }
+    if (!window.jspdf) { tell('De PDF-module is niet geladen. Herlaad de pagina en probeer opnieuw.'); return; }
     deliver(makePDF(), `plantmagneten-${today()}.pdf`);
   });
 
@@ -922,26 +968,32 @@
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
+      e.target.value = '';
+      let data;
       try {
-        const data = JSON.parse(reader.result);
+        data = JSON.parse(reader.result);
         if (!Array.isArray(data.labels)) throw new Error('geen lijst');
-        if (state.labels.length && !confirm('De huidige lijst wordt vervangen door de lijst uit het bestand. Doorgaan?')) return;
+      } catch (err) {
+        tell('Dit bestand kan niet worden ingeladen. Kies een bestand dat met “Lijst opslaan als bestand” is gemaakt.');
+        return;
+      }
+      const apply = () => {
         state.labels = normalizeList(data.labels);
         if (data.settings) state.settings = normalizeSettings(data.settings);
         writeSettings(); stopEdit(); renderAll();
-      } catch (err) {
-        alert('Dit bestand kan niet worden ingeladen. Kies een bestand dat met “Lijst opslaan als bestand” is gemaakt.');
-      } finally {
-        e.target.value = '';
-      }
+      };
+      if (!state.labels.length) { apply(); return; }
+      ask('De huidige lijst wordt vervangen door de lijst uit het bestand. Doorgaan?', { yes: 'Vervangen' }).then(ok => { if (ok) apply(); });
     };
     reader.readAsText(file);
   });
   $('clearBtn').addEventListener('click', () => {
     if (!state.labels.length) return;
-    if (!confirm('Alle magneten wissen? Dit kan niet ongedaan worden gemaakt.')) return;
-    state.labels = [];
-    stopEdit(); renderAll();
+    ask('Alle magneten wissen? Dit kan niet ongedaan worden gemaakt.', { yes: 'Alles wissen', danger: true }).then(ok => {
+      if (!ok) return;
+      state.labels = [];
+      stopEdit(); renderAll();
+    });
   });
 
   let resizeTimer;
