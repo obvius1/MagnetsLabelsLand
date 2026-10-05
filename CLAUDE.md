@@ -29,7 +29,7 @@ Tot nu toe deed hij dit manueel in Word. Dat was traag en de maten klopten niet.
 - **Linksboven:** de naam van de plant, groot en vet. Een te lange naam krimpt automatisch tot ze past, minimaal tot 40% van de basisgrootte.
 - **Rechtsboven:** een letter van A tot L, groot maar niet vet.
 - **Linksonder:** maximaal twee regels, elk met een klein label en daarnaast de periode in het vet.
-  - Regel 1: een dropdown met Zaaien, Voorzaaien, Planten, Uitplanten, Poten of Snoeien (zonder label erboven, enkel `aria-label`), met een periode van/tot.
+  - Regel 1: een dropdown met Zaaien, Voorzaaien, Planten, Uitplanten, Poten of Snoeien (zonder label erboven, enkel `aria-label`), met een periode van/tot. Via "+ Tweede periode" kan er een tweede periode bij (bv. winter- en zomersnoei); die komt op dezelfde regel: `dec – feb, jul – aug`.
   - Regel 2: "Oogsten" met een periode van/tot. Optioneel via een vinkje (`harvest`), standaard aan.
   - Een regel zonder maanden wordt weggelaten.
   - Een periode wordt getoond als `apr – mei`. Is het één maand, dan enkel `apr`.
@@ -43,13 +43,14 @@ Tot nu toe deed hij dit manueel in Word. Dat was traag en de maten klopten niet.
 
 ## Plantenlijst en suggesties
 
-- Bij het typen van de naam (vanaf 2 letters) toont een lijst onder het veld maximaal 8 suggesties. Een suggestie aantikken vult naam, type, van/tot, het vinkje Oogsten en de oogstmaanden in. Letter en nummer blijven staan.
+- Bij het typen van de naam (vanaf 2 letters) toont een lijst onder het veld maximaal 8 suggesties. Een suggestie aantikken vult naam, type, van/tot (en eventueel de tweede periode), het vinkje Oogsten en de oogstmaanden in. Letter en nummer blijven staan. Een omschrijving komt mee in de naam: "Appel Elstar (herfst)".
+- De lijst sluit met de knop "Sluiten, zelf verder invullen" onderaan, door ergens anders te tikken, of met Escape. Dat is belangrijk op de iPad: daar verliest het naamveld de focus niet altijd als je ernaast tikt.
 - **Bewuste keuze:** er wordt niets op internet opgezocht. De lijst zit in `planten.json`, komt mee met de app en staat in de cache van de service worker (werkt dus offline).
 - Eerst komen de eigen magneten (label "eigen"): wat hij zelf al eens gemaakt heeft, met zijn eigen maanden. Daarna de lijst, met gewassen vóór rassen.
 - Zoeken (`findSuggestions()`, `score()`): zonder rekening te houden met hoofdletters of accenten. Elk getypt woord moet passen bij een woord uit de gewasnaam, de omschrijving, de zoekwoorden of de rasnaam.
   - Volgorde: exact woord, dan achteraan in een woord, dan vooraan, dan ergens middenin. In het Nederlands staat het hoofdwoord achteraan, dus "sla" geeft eerst Kropsla, IJsbergsla, ... en niet Slaapmutsje. "kool" geeft Rode kool, Spruitkool, ...
   - Een treffer in de rasnaam telt minder dan in de gewasnaam: "tom" geeft eerst Tomaat, niet "Kropsla Tom Thumb". Daarna komen gewassen voor rassen, en dan alfabetisch.
-- Formaat van `planten.json`: `{ versie, uitleg, planten: [...] }`. Per gewas: `naam`, optioneel `omschrijving` (bv. "vroeg", "winter"), `type`, `van`, `tot`, `oogstVan`, `oogstTot` (maandafkortingen, of `null` voor geen oogst), optioneel `zoekwoorden` (Vlaamse of andere namen, bv. Ajuin, Kroot, Warmoes) en optioneel `rassen`. Een ras wordt getoond als `naam + " " + ras` en krijgt de kalender van het gewas. Hebben rassen een andere kalender, dan staat hetzelfde gewas er meerdere keren in, met een andere `omschrijving`.
+- Formaat van `planten.json`: `{ versie, uitleg, planten: [...] }`. Per gewas: `naam`, optioneel `omschrijving` (bv. "vroeg", "winter"), `type`, `van`, `tot`, `oogstVan`, `oogstTot` (maandafkortingen, of `null` voor geen oogst), optioneel `van2`/`tot2` (tweede periode), optioneel `zoekwoorden` (Vlaamse of andere namen, bv. Ajuin, Kroot, Warmoes) en optioneel `rassen`. Een ras wordt getoond als `naam + " " + ras` en krijgt de kalender van het gewas. Hebben rassen een andere kalender, dan staat hetzelfde gewas er meerdere keren in, met een andere `omschrijving`.
 - Inhoud: ongeveer 2150 namen (ruim 400 gewassen en 1700 rassen): groenten, kruiden, fruit, bloemen voor de moestuin en groenbemesters. Rassen zijn deels nagekeken in catalogi van Vreeken, De Bolster en Welkoop. Aanpassen kan rechtstreeks in `planten.json`, de volgorde maakt niet uit.
 - De lijst is opgesteld voor Vlaanderen. `type` is de eerste handeling van een hobbytuinier: voorzaaien (binnen of onder glas), zaaien (ter plaatse), planten (plantgoed, struiken, bomen) of poten (knollen, bollen, plantuien). Bij fruitbomen en -struiken staat `Snoeien` met de snoeiperiode (pitfruit en bessen in de winter, steenvruchten en walnoot in de zomer, perzik rond de bloei). `Uitplanten` komt in de lijst niet voor.
 - `loadCatalog()` slaat ongeldige regels gewoon over. Een fout in het bestand breekt de app dus niet, maar die plant verschijnt dan ook niet.
@@ -70,11 +71,11 @@ Tot nu toe deed hij dit manueel in Word. Dat was traag en de maten klopten niet.
    - In de CSS staan ze als `calc(var(--h) * …)` in `.card`, `.c-name span`, `.c-letter`, `.c-type`, `.c-period` en `.c-num`.
    - In de JS staan ze in het object `R`, dat `makePDF()` gebruikt.
    - Pas je er één aan, pas dan ook de andere aan. Anders verschillen het scherm en de afdruk van de PDF.
-2. **Verhoog `CACHE` in `sw.js` bij elke wijziging** (nu `plantmagneten-v13`). Anders kan de geïnstalleerde PWA een oude versie blijven tonen. Het nummer verschijnt ook klein rechtsboven op de pagina: `index.html` leest het uit `sw.js`, houd dus de vorm `'plantmagneten-vN'`. De service worker werkt network-first, met de cache als fallback.
+2. **Verhoog `CACHE` in `sw.js` bij elke wijziging** (nu `plantmagneten-v14`). Anders kan de geïnstalleerde PWA een oude versie blijven tonen. Het nummer verschijnt ook klein rechtsboven op de pagina: `index.html` leest het uit `sw.js`, houd dus de vorm `'plantmagneten-vN'`. De service worker werkt network-first, met de cache als fallback.
 3. **Houd `makePDF()` en `navigator.share()` synchroon binnen de klik.** Safari op iOS weigert `share()` als er eerst een `await` zat (de user activation is dan verlopen). Daarom worden de lettertypes bij het opstarten voorgeladen als base64 in `fontData`. Kunnen ze niet geladen worden, dan valt de PDF terug op Helvetica.
    - Geef aan `share()` enkel `files` mee, geen `title` of `text`. Anders bewaart iOS die bij "Bewaar in Bestanden" als extra `.txt`-bestand.
 4. **Opslag:** `localStorage` met sleutel `plantmagneten-v1`, als `{ labels: [...], settings: {...} }`.
-   - Een label ziet er zo uit: `{ id, name, type, from, to, hFrom, hTo, harvest, letter, number, print }`. Maanden zijn index 0–11 of `null`.
+   - Een label ziet er zo uit: `{ id, name, type, from, to, from2, to2, hFrom, hTo, harvest, letter, number, print }`. Maanden zijn index 0–11 of `null`.
    - `normalize()` maakt oude of geïmporteerde labels veilig, `normalizeList()` filtert ongeldige regels weg.
    - `normalizeSettings()` doet hetzelfde voor de instellingen. `load()` en de import gebruiken allebei deze functies.
    - `settings.v` is een schemaversie. Instellingen zonder `v` worden vervangen door de nieuwe standaard (105 × 30).
