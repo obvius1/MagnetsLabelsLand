@@ -37,7 +37,7 @@ Tot nu toe deed hij dit manueel in Word. Dat was traag en de maten klopten niet.
   - Een periode wordt getoond als `apr – mei`. Is het één maand, dan enkel `apr`.
   - Maandafkortingen: `jan feb mrt apr mei jun jul aug sep okt nov dec`.
 - **Rechtsonder:** het nummer met een hekje ervoor, bv. `#12`, niet vet. Het nummer is de plaats op het bord en telt niet vanzelf op.
-- Zwart op wit, om printerinkt te sparen. Snijlijnen zijn optioneel (lichtgrijs, 0,2 mm).
+- Zwart op wit, om printerinkt te sparen. Snijlijnen zijn optioneel (lichtgrijs #bebebe, 0,1 mm, gecentreerd op de rand zodat buren één lijn delen).
 
 **Bewuste keuzes:**
 - Een algemeen Nederlands woord voor "zaaien of planten" bestaat niet. Daarom kiest hij het label via een dropdown, niet via vrij typen.
@@ -73,7 +73,7 @@ Tot nu toe deed hij dit manueel in Word. Dat was traag en de maten klopten niet.
    - In de CSS staan ze als `calc(var(--h) * …)` in `.card`, `.c-name span`, `.c-note`, `.c-letter`, `.c-type`, `.c-period` en `.c-num`.
    - In de JS staan ze in het object `R`, dat `makePDF()` gebruikt.
    - Pas je er één aan, pas dan ook de andere aan. Anders verschillen het scherm en de afdruk van de PDF.
-2. **Verhoog `CACHE` in `sw.js` bij elke wijziging** (nu `plantmagneten-v19`). Anders kan de geïnstalleerde PWA een oude versie blijven tonen. Het nummer verschijnt ook klein rechtsboven op de pagina: `index.html` leest het uit `sw.js`, houd dus de vorm `'plantmagneten-vN'`. De service worker werkt network-first, met de cache als fallback.
+2. **Verhoog `CACHE` in `sw.js` bij elke wijziging** (nu `plantmagneten-v20`). Anders kan de geïnstalleerde PWA een oude versie blijven tonen. Het nummer verschijnt ook klein rechtsboven op de pagina: `index.html` leest het uit `sw.js`, houd dus de vorm `'plantmagneten-vN'`. De service worker werkt network-first, met de cache als fallback.
 3. **Houd `makePDF()` en `navigator.share()` synchroon binnen de klik.** Safari op iOS weigert `share()` als er eerst een `await` zat (de user activation is dan verlopen). Daarom worden de lettertypes bij het opstarten voorgeladen als base64 in `fontData`. Kunnen ze niet geladen worden, dan valt de PDF terug op Helvetica.
    - Geef aan `share()` enkel `files` mee, geen `title` of `text`. Anders bewaart iOS die bij "Bewaar in Bestanden" als extra `.txt`-bestand.
 4. **Opslag:** `localStorage` met sleutel `plantmagneten-v1`, als `{ labels: [...], settings: {...} }`.

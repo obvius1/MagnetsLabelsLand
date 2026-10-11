@@ -134,7 +134,7 @@
     column-gap: calc(var(--h) * .08);
     font-family: "Atkinson", Arial, sans-serif; line-height: 1.1;
   }
-  .card.cut { outline: 0.2mm solid #8a948c; outline-offset: -0.1mm; }
+  .card.cut { outline: 0.1mm solid #bebebe; outline-offset: -0.05mm; }
   .c-name { overflow: hidden; align-self: start; }
   .c-name span { display: inline-block; white-space: nowrap; font-weight: 700; font-size: calc(var(--h) * .28); line-height: 1; }
   .c-name .c-note { font-weight: 400; font-size: .75em; }
@@ -653,7 +653,7 @@
       if (p > 0) doc.addPage('a4', 'portrait');
       page.forEach(({ x, y, item }) => {
         if (!item) return;
-        if (s.cut) { doc.setDrawColor(138, 148, 140); doc.setLineWidth(0.2); doc.rect(x, y, w, h); }
+        if (s.cut) { doc.setDrawColor(190, 190, 190); doc.setLineWidth(0.1); doc.rect(x, y, w, h); }
         doc.setTextColor(0, 0, 0);
 
         // letter rechtsboven
